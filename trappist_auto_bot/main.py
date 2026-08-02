@@ -3,7 +3,14 @@
 import argparse
 import asyncio
 import sys
+from pathlib import Path
 from typing import Any
+
+# Ensure the project root is on PYTHONPATH (needed for Render and other
+# environments where the package is not installed).
+_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
 from trappist_auto_bot.config import Config
 from trappist_auto_bot.image.generator import TrappistImageGenerator
