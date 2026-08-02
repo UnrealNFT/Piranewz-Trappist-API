@@ -10,7 +10,8 @@ ENV/
 env/
 
 # Secrets
-config.py
+# Only ignore config.py at the repo root, not inside the package.
+/config.py
 .env
 *.key
 
