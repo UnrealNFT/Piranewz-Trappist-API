@@ -116,8 +116,10 @@ def create_gauge_image(
     classification = fear_greed_data.get("value_classification", "Neutral")
     current_color = get_gauge_color(value)
 
-    # Horizontal bar gauge
-    bar_x, bar_y, bar_width, bar_height = 150, 500, 900, 80
+    # Horizontal bar gauge (centered in 1024px width)
+    bar_width, bar_height = 900, 80
+    bar_x = (width - bar_width) // 2
+    bar_y = 500
     zones = [
         {"start": 0, "end": 20, "color": BLOOD_RED},
         {"start": 20, "end": 40, "color": (253, 126, 20)},
