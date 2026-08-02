@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# Secrets
+config.py
+.env
+*.key
+
+# Data
+data/
+*.db
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Render / local debug artifacts
+*.log
+*.json
+*.jpg
+*.jpeg
+*.png
+!assets/*.png
+!assets/*.jpg
+!tests/assets/*
+!package.json
+node_modules/
+package-lock.json

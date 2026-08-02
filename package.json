@@ -1,0 +1,15 @@
+{
+  "name": "trappist-auto-bot",
+  "version": "1.0.0",
+  "description": "Bot Telegram autonome qui génère des images sur **TrappistAI** en payant automatiquement via le flux **x402**.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "casper-js-sdk": "^2.15.5"
+  }
+}

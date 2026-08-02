@@ -1,0 +1,72 @@
+"""Example configuration.
+
+Copy this file to local_config.py, fill in your values, then run it before
+starting the bot: python local_config.py && python -m trappist_auto_bot.main
+"""
+
+import os
+
+# -----------------------------------------------------------------------------
+# AI / Image generation APIs
+# -----------------------------------------------------------------------------
+os.environ["GROQ_API_KEY"] = "groq gsk_..."
+os.environ["WAVESPEED_API_KEY"] = "wavespeed wsk_..."
+
+# -----------------------------------------------------------------------------
+# Casper wallet (x402 payments)
+# -----------------------------------------------------------------------------
+os.environ["CASPER_PUBLIC_KEY"] = "0202e5a8..."
+# Path to PEM private key file. The bot will sign locally when SIGNER_BACKEND=local.
+os.environ["CASPER_PRIVATE_KEY_PATH"] = "/secure/casper_key.pem"
+
+# -----------------------------------------------------------------------------
+# Solana wallet (future multi-chain / NFT features)
+# -----------------------------------------------------------------------------
+os.environ["SOLANA_PRIVATE_KEY"] = "4i5mub9..."
+os.environ["SOLANA_PUBLIC_KEY"] = "21kmWu6..."
+
+# -----------------------------------------------------------------------------
+# Telegram
+# -----------------------------------------------------------------------------
+os.environ["TELEGRAM_BOT_TOKEN"] = "123456:ABC-DEF..."
+os.environ["TELEGRAM_CHAT_ID"] = "-1001234567890"
+
+# -----------------------------------------------------------------------------
+# TrappistAI API
+# -----------------------------------------------------------------------------
+os.environ["TRAPIST_API_URL"] = "https://trappist.land"
+
+# -----------------------------------------------------------------------------
+# Payment / signing
+# -----------------------------------------------------------------------------
+# Options: "mock" (default, invalid deploys), "local" (uses CASPER_PRIVATE_KEY_PATH),
+# or set SIGNER_COMMAND to an external script.
+os.environ["SIGNER_BACKEND"] = "local"
+os.environ["SIGNER_COMMAND"] = ""
+os.environ["SIGNER_TIMEOUT"] = "60"
+os.environ["MAX_PAYMENT_MOTES"] = "20000000000"      # 20 CSPR max per image
+os.environ["DAILY_BUDGET_MOTES"] = "100000000000"     # 100 CSPR per day
+
+# -----------------------------------------------------------------------------
+# Autonomous generation schedule
+# -----------------------------------------------------------------------------
+os.environ["GENERATION_INTERVAL_MINUTES"] = "60"
+os.environ["MAX_ARTICLES_PER_CYCLE"] = "3"
+os.environ["USE_RSS_PROMPTS"] = "true"
+os.environ["RSS_SOURCES"] = (
+    "https://cointelegraph.com/rss,"
+    "https://coindesk.com/arc/outboundfeeds/rss/?outputType=xml,"
+    "https://cryptonews.com/news/feed/"
+)
+os.environ["FALLBACK_PROMPTS"] = (
+    "a futuristic crypto city glowing at night,"
+    "a cyberpunk bull holding a glowing bitcoin coin"
+)
+
+# -----------------------------------------------------------------------------
+# Image overlay / storage
+# -----------------------------------------------------------------------------
+os.environ["ADD_LOGO"] = "false"
+os.environ["LOGO_PATH"] = ""
+os.environ["DATABASE_PATH"] = "data/bot.db"
+os.environ["LOG_LEVEL"] = "INFO"

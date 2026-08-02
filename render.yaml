@@ -1,0 +1,77 @@
+services:
+  - type: worker
+    name: piranewz-bot
+    runtime: python
+    plan: starter
+    region: frankfurt
+    buildCommand: |
+      pip install -r requirements.txt
+      npm install
+    startCommand: python -m trappist_auto_bot.main
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: DATABASE_PATH
+        value: /data/bot.db
+      - key: LOG_LEVEL
+        value: INFO
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: TELEGRAM_CHAT_ID_FR
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: WAVESPEED_API_KEY
+        sync: false
+      - key: CASPER_PUBLIC_KEY
+        sync: false
+      - key: CASPER_PRIVATE_KEY_BASE64
+        sync: false
+      - key: SOLANA_PRIVATE_KEY
+        sync: false
+      - key: SOLANA_PUBLIC_KEY
+        sync: false
+      - key: TRAPIST_API_URL
+        value: https://trappist.land
+      - key: SIGNER_BACKEND
+        value: local
+      - key: SIGNER_TIMEOUT
+        value: "60"
+      - key: MAX_PAYMENT_MOTES
+        value: "20000000000"
+      - key: DAILY_BUDGET_MOTES
+        value: "2000000000000"
+      - key: MIN_BALANCE_MOTES
+        value: "50000000000"
+      - key: CASPER_NODE_URL
+        value: https://node.mainnet.casper.network/rpc
+      - key: IMAGE_BACKEND
+        value: trappist
+      - key: GENERATION_INTERVAL_MINUTES
+        value: "5"
+      - key: POST_INTERVAL_MINUTES
+        value: "4"
+      - key: MAX_ARTICLES_PER_CYCLE
+        value: "4"
+      - key: DELAY_BETWEEN_POSTS
+        value: "60"
+      - key: USE_RSS_PROMPTS
+        value: "true"
+      - key: RSS_SOURCES
+        value: "https://cointelegraph.com/rss,https://www.coindesk.com/arc/outboundfeeds/rss/,https://decrypt.co/feed,https://www.theblock.co/rss.xml,https://bitcoinmagazine.com/.rss/full/,https://cryptoslate.com/feed/,https://bitcoinist.com/feed/,https://www.newsbtc.com/feed/,https://cryptonews.com/news/feed/,https://news.bitcoin.com/feed/,https://beincrypto.com/feed/,https://ambcrypto.com/feed/,https://u.today/rss,https://www.theguardian.com/technology/cryptocurrencies/rss,https://blockchain.news/RSS,https://cryptodaily.co.uk/feed,https://coinjournal.net/feed/,https://feeds.reuters.com/reuters/topNews,http://rss.cnn.com/rss/cnn_topstories.rss,https://news.google.com/rss"
+      - key: FALLBACK_PROMPTS
+        value: "a futuristic crypto city glowing at night,a cyberpunk bull holding a glowing bitcoin coin"
+      - key: ADD_LOGO
+        value: "true"
+      - key: LOGO_PATH
+        value: assets/logo.png
+      - key: POST_FEAR_GREED
+        value: "true"
+      - key: IMAGE_EVERY_N_ARTICLES
+        value: "1"
+    disk:
+      name: piranewz-data
+      mountPath: /data
+      sizeGB: 1
