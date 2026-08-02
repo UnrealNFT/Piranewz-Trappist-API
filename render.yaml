@@ -6,7 +6,6 @@ services:
     region: frankfurt
     buildCommand: |
       pip install -r requirements.txt
-      pip install -e .
       npm install
     startCommand: PYTHONPATH=/opt/render/project/src python -m trappist_auto_bot.main
     envVars:
