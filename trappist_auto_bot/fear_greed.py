@@ -97,7 +97,7 @@ def create_gauge_image(
     channel_name: str = "@piranewz",
 ) -> bytes:
     """Create a Piranewz-themed Fear & Greed gauge image."""
-    width, height = 1200, 1200
+    width, height = 1024, 1024
     img = create_theme_background((width, height))
     draw = ImageDraw.Draw(img)
 

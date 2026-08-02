@@ -24,8 +24,8 @@ TEXT_COLOR = (255, 255, 255)
 UP_COLOR = (0, 230, 120)
 DOWN_COLOR = BLOOD_RED
 CARD_BORDER = (180, 180, 190)
-IMAGE_SIZE = (1200, 1200)
-MARGIN = 70
+IMAGE_SIZE = (1024, 1024)
+MARGIN = 60
 
 
 def _load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
@@ -62,22 +62,23 @@ def build_price_image(
     draw = ImageDraw.Draw(img)
 
     # Fonts.
-    font_title = _load_font(56, bold=True)
-    font_coin = _load_font(48, bold=True)
-    font_price = _load_font(40)
-    font_small = _load_font(26)
+    font_title = _load_font(48, bold=True)
+    font_coin = _load_font(40, bold=True)
+    font_price = _load_font(32)
+    font_small = _load_font(20)
 
     # Header (shifted right so it does not overlap the top-left logo).
-    header_x = MARGIN + 230
+    header_x = MARGIN + 180
     draw.text((header_x, MARGIN), "Crypto Watch", font=font_title, fill=TEXT_COLOR)
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-    draw.text((header_x, MARGIN + 70), now, font=font_small, fill=(150, 150, 165))
+    draw.text((header_x, MARGIN + 60), now, font=font_small, fill=(150, 150, 165))
 
-    # Cards.
+    # Cards, vertically centered like Fear & Greed gauge.
     coins = list(prices.items())
-    card_height = 140
-    gap = 24
-    start_y = MARGIN + 180
+    card_height = 120
+    gap = 20
+    total_cards_height = len(coins) * card_height + (len(coins) - 1) * gap
+    start_y = (IMAGE_SIZE[1] - total_cards_height) // 2 - 20
     for i, (symbol, data) in enumerate(coins):
         y = start_y + i * (card_height + gap)
 
