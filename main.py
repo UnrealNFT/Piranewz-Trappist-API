@@ -12,6 +12,13 @@ _PROJECT_ROOT = Path(__file__).resolve().parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
+# Debug: log what the runtime sees in the project root.
+import os  # noqa: E402
+print("DEBUG project root:", _PROJECT_ROOT, file=sys.stderr)
+print("DEBUG cwd:", os.getcwd(), file=sys.stderr)
+print("DEBUG contents:", os.listdir(_PROJECT_ROOT), file=sys.stderr)
+print("DEBUG trappist dir:", os.listdir(_PROJECT_ROOT / "trappist_auto_bot") if (_PROJECT_ROOT / "trappist_auto_bot").exists() else "MISSING", file=sys.stderr)
+
 from trappist_auto_bot.config import Config
 from trappist_auto_bot.image.generator import TrappistImageGenerator
 from trappist_auto_bot.rss.fetcher import RssFetcher
