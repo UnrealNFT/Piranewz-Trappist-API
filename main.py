@@ -8,7 +8,7 @@ from typing import Any
 
 # Ensure the project root is on PYTHONPATH (needed for Render and other
 # environments where the package is not installed).
-_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+_PROJECT_ROOT = Path(__file__).resolve().parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 

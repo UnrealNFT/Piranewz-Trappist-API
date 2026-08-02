@@ -18,8 +18,8 @@ Inspiré de [`UnrealNFT/crypto-news-bot`](https://github.com/UnrealNFT/crypto-ne
 
 ```
 trappist-auto-bot/
+├── main.py                  # Point d'entrée
 ├── trappist_auto_bot/
-│   ├── main.py              # Point d'entrée
 │   ├── config.py            # Configuration env
 │   ├── scheduler.py         # Boucle autonome en mode file
 │   ├── formatting.py        # Captions + prompts
@@ -83,13 +83,13 @@ Variables importantes :
 Mode autonome :
 
 ```bash
-python -m trappist_auto_bot.main
+python main.py
 ```
 
 Un seul cycle (test) :
 
 ```bash
-python -m trappist_auto_bot.main --once
+python main.py --once
 ```
 
 ## 🚀 Déploiement Render
@@ -103,7 +103,7 @@ python -m trappist_auto_bot.main --once
    - **Name** : `piranewz-bot`
    - **Runtime** : Python 3
    - **Build Command** : `pip install -r requirements.txt && npm install`
-   - **Start Command** : `python -m trappist_auto_bot.main`
+   - **Start Command** : `python main.py`
    - **Plan** : Starter (pour du 24/7)
 5. Dans **Disks**, ajoute un disque :
    - Name : `piranewz-data`

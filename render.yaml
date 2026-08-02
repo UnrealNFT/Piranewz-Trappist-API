@@ -7,7 +7,7 @@ services:
     buildCommand: |
       pip install -r requirements.txt
       npm install
-    startCommand: PYTHONPATH=/opt/render/project/src python -m trappist_auto_bot.main
+    startCommand: python main.py
     envVars:
       - key: PYTHONUNBUFFERED
         value: "1"
