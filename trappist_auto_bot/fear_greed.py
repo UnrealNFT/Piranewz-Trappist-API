@@ -98,6 +98,7 @@ def create_gauge_image(
 ) -> bytes:
     """Create a Piranewz-themed Fear & Greed gauge image."""
     width, height = 1024, 1024
+    MARGIN = 60
     img = create_theme_background((width, height))
     draw = ImageDraw.Draw(img)
 
@@ -107,10 +108,11 @@ def create_gauge_image(
     label_font = _load_font(32)
     small_font = _load_font(22)
 
-    # Title
-    title = "FEAR & GREED INDEX"
-    title_bbox = draw.textbbox((0, 0), title, font=title_font)
-    draw.text(((width - (title_bbox[2] - title_bbox[0])) // 2, 180), title, font=title_font, fill=PALE_GRAY)
+    # Title (top-left area, aligned like CRYPTO WATCH)
+    title_x = MARGIN + 180
+    draw.text((title_x, MARGIN), "FEAR & GREED INDEX", font=title_font, fill=PALE_GRAY)
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    draw.text((title_x, MARGIN + 60), now, font=small_font, fill=(150, 150, 165))
 
     value = fear_greed_data.get("value", 50)
     classification = fear_greed_data.get("value_classification", "Neutral")
