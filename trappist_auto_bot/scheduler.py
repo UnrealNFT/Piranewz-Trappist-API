@@ -280,6 +280,7 @@ class GenerationScheduler:
         self._image_lock = asyncio.Lock()
         self._posted_ids: set[str] = set()
         self._cycle_count = 0
+        self._first_fear_greed_done = False
 
         await asyncio.gather(
             self._rss_scheduler(interval),
@@ -295,7 +296,13 @@ class GenerationScheduler:
                 logger.info("RSS fetch cycle starting...")
 
                 # Optional Fear & Greed on its own cadence (not blocking).
+                # On the very first cycle, wait 5 minutes after startup so the
+                # price update posts first.
                 if getattr(self.config, "post_fear_greed", True):
+                    if not self._first_fear_greed_done:
+                        logger.info("Waiting 5 minutes before first Fear & Greed post")
+                        await asyncio.sleep(300)
+                        self._first_fear_greed_done = True
                     try:
                         await self._maybe_post_fear_greed()
                     except Exception as exc:  # noqa: BLE001
