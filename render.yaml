@@ -69,6 +69,10 @@ services:
         value: assets/logo.png
       - key: POST_FEAR_GREED
         value: "true"
+      - key: PRICE_POST_INTERVAL_HOURS
+        value: "2"
+      - key: CMC_API_KEY
+        sync: false
       - key: IMAGE_EVERY_N_ARTICLES
         value: "1"
     disk:

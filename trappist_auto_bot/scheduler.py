@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from trappist_auto_bot.config import Config
+from trappist_auto_bot.crypto_prices import PriceProviderError, fetch_prices
 from trappist_auto_bot.fear_greed import build_caption as build_fear_greed_caption
 from trappist_auto_bot.fear_greed import create_gauge_image, fetch_index
 from trappist_auto_bot.formatting import (
@@ -18,12 +19,19 @@ from trappist_auto_bot.formatting import (
 from trappist_auto_bot.image.generator import TrappistImageGenerator
 from trappist_auto_bot.image.pollinations_generator import PollinationsError, PollinationsImageGenerator
 from trappist_auto_bot.image.wavespeed_generator import WaveSpeedError, WaveSpeedImageGenerator
+from trappist_auto_bot.price_poster import post_price_update
 from trappist_auto_bot.rss.fetcher import RssFetcher
 from trappist_auto_bot.storage.db import Database
 from trappist_auto_bot.telegram.poster import TelegramPoster
 from trappist_auto_bot.utils.logger import get_logger
 from trappist_auto_bot.wallet import WalletService
 from trappist_auto_bot.x402.client import X402Error
+
+# Cycles for the 2h/4h price watch posts.
+PRICE_CYCLES = [
+    ["BTC", "CSPR", "DOGE"],
+    ["ETH", "ALGO", "SOL"],
+]
 
 logger = get_logger(__name__)
 
@@ -275,6 +283,7 @@ class GenerationScheduler:
         await asyncio.gather(
             self._rss_scheduler(interval),
             self._article_processor(delay),
+            self._price_scheduler(),
             return_exceptions=True,
         )
 
@@ -346,6 +355,30 @@ class GenerationScheduler:
 
             if delay_seconds > 0:
                 await asyncio.sleep(delay_seconds)
+
+    async def _price_scheduler(self) -> None:
+        """Post a crypto price update every 2 hours, alternating coin cycles."""
+        interval_hours = getattr(self.config, "price_post_interval_hours", 2)
+        interval_seconds = interval_hours * 3600
+        cycle_index = 0
+
+        while True:
+            await asyncio.sleep(interval_seconds)
+            symbols = PRICE_CYCLES[cycle_index % len(PRICE_CYCLES)]
+            cycle_index += 1
+            try:
+                cmc_key = getattr(self.config, "cmc_api_key", "")
+                prices = fetch_prices(symbols, cmc_api_key=cmc_key)
+                await post_price_update(
+                    self.poster,
+                    prices,
+                    logo_path=self.config.logo_path,
+                )
+                logger.info("Posted price update for %s", ", ".join(symbols))
+            except PriceProviderError as exc:
+                logger.warning("Price update failed: %s", exc)
+            except Exception as exc:  # noqa: BLE001
+                logger.exception("Unexpected error posting price update: %s", exc)
 
     def _select_article_to_illustrate(
         self, articles: list[dict[str, Any]]

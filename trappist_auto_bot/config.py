@@ -64,6 +64,12 @@ class Config:
     # Fear & Greed index posting
     post_fear_greed: bool = True
 
+    # Crypto price update schedule (hours between posts).
+    price_post_interval_hours: int = 2
+
+    # CoinMarketCap API key (optional, used as price provider fallback).
+    cmc_api_key: str = ""
+
     # Image ratio: generate an image for every Nth article in the cycle.
     # 0 = text-only, no images (no cost).
     # 1 = every article illustrated.
@@ -154,6 +160,10 @@ class Config:
             logo_path=os.environ.get("LOGO_PATH", ""),
             post_fear_greed=os.environ.get("POST_FEAR_GREED", "true").lower()
             in ("1", "true", "yes"),
+            price_post_interval_hours=int(
+                os.environ.get("PRICE_POST_INTERVAL_HOURS", "2")
+            ),
+            cmc_api_key=os.environ.get("CMC_API_KEY", ""),
             image_every_n_articles=int(
                 os.environ.get("IMAGE_EVERY_N_ARTICLES", "3")
             ),

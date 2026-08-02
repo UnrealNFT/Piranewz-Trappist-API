@@ -213,25 +213,27 @@ class NoOpPoster:
     async def post_image(
         self,
         image_url: str,
-        caption: str,
+        caption_en: str,
+        caption_fr: str = "",
         *,
         add_logo: bool = False,
         logo_path: str = "",
     ) -> dict[str, Any]:
         logger.info("Telegram disabled. Image URL: %s", image_url)
-        return {"message_id": None, "caption": caption}
+        return {"message_id": None, "caption": caption_en}
 
     async def post_image_bytes(
         self,
         image_bytes: bytes,
-        caption: str,
+        caption_en: str,
+        caption_fr: str = "",
         *,
         add_logo: bool = False,
         logo_path: str = "",
     ) -> dict[str, Any]:
         logger.info("Telegram disabled. Image bytes: %s bytes", len(image_bytes))
-        return {"message_id": None, "caption": caption}
+        return {"message_id": None, "caption": caption_en}
 
-    async def post_text(self, caption: str) -> dict[str, Any]:
-        logger.info("Telegram disabled. Text caption: %s", caption[:80])
-        return {"message_id": None, "caption": caption}
+    async def post_text(self, caption_en: str, caption_fr: str = "") -> dict[str, Any]:
+        logger.info("Telegram disabled. Text caption: %s", caption_en[:80])
+        return {"message_id": None, "caption": caption_en}
