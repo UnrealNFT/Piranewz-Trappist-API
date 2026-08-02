@@ -30,24 +30,28 @@ MARGIN = 60
 
 
 def _load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    """Load a TrueType font, falling back to default."""
+    """Load the tele1000 font (DejaVu Sans), falling back to system defaults."""
     import sys
 
-    try:
-        if sys.platform == "win32":
-            font_name = "arialbd.ttf" if bold else "arial.ttf"
-            font_path = Path(f"C:/Windows/Fonts/{font_name}")
-            if font_path.exists():
-                return ImageFont.truetype(str(font_path), size)
-            return ImageFont.truetype("C:/Windows/Fonts/arial.ttf", size)
-        families = (
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-            if bold
-            else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-        )
-        return ImageFont.truetype(families, size)
-    except Exception:
-        return ImageFont.load_default()
+    candidates = []
+    if sys.platform == "win32":
+        candidates = [
+            "C:/Windows/Fonts/DejaVuSans-Bold.ttf" if bold else "C:/Windows/Fonts/DejaVuSans.ttf",
+            "C:/Windows/Fonts/arialbd.ttf" if bold else "C:/Windows/Fonts/arial.ttf",
+            "C:/Windows/Fonts/arial.ttf",
+        ]
+    else:
+        candidates = [
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        ]
+
+    for path in candidates:
+        try:
+            return ImageFont.truetype(path, size)
+        except Exception:
+            continue
+    return ImageFont.load_default()
 
 
 def _draw_underwater_background(draw: ImageDraw.Draw, size: tuple[int, int]) -> None:
@@ -112,10 +116,11 @@ def build_price_image(
     font_price = _load_font(34)
     font_small = _load_font(22)
 
-    # Header.
-    draw.text((MARGIN, MARGIN), "🌊 Crypto Watch", font=font_title, fill=AQUA_GLOW)
+    # Header (shifted right so it does not overlap the top-left logo).
+    header_x = MARGIN + 220
+    draw.text((header_x, MARGIN), "Crypto Watch", font=font_title, fill=AQUA_GLOW)
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-    draw.text((MARGIN, MARGIN + 65), now, font=font_small, fill=(160, 180, 200))
+    draw.text((header_x, MARGIN + 65), now, font=font_small, fill=(160, 180, 200))
 
     # Cards.
     coins = list(prices.items())
@@ -168,9 +173,9 @@ def build_price_image(
         anchor="lb",
     )
 
-    # Add uniform Piranewz branding on the right.
+    # Add uniform Piranewz branding on the left, matching generated RSS images.
     if logo_path and Path(logo_path).exists():
-        return overlay_piranewz_branding(img, logo_path=logo_path, channel_name="@piranewz", corner="top-right")
+        return overlay_piranewz_branding(img, logo_path=logo_path, channel_name="@piranewz", corner="top-left")
 
     output = io.BytesIO()
     img.convert("RGB").save(output, format="PNG")
@@ -182,8 +187,8 @@ def build_price_caption(
     hashtags: list[str] | None = None,
 ) -> tuple[str, str]:
     """Return (caption_en, caption_fr) for a price update."""
-    lines_en = ["🌊 Crypto Price Update\n"]
-    lines_fr = ["🌊 Mise à jour des prix crypto\n"]
+    lines_en = ["📊 Crypto Price Update\n"]
+    lines_fr = ["📊 Mise à jour des prix crypto\n"]
     for symbol, data in prices.items():
         price = data.get("usd", 0)
         change = data.get("change_24h", 0)

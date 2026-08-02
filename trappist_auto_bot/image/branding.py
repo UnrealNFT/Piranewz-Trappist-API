@@ -12,24 +12,28 @@ logger = get_logger(__name__)
 
 
 def _load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    """Load a TrueType font, falling back to default."""
+    """Load the tele1000 font (DejaVu Sans), falling back to system defaults."""
     import sys
 
-    try:
-        if sys.platform == "win32":
-            font_name = "arialbd.ttf" if bold else "arial.ttf"
-            font_path = Path(f"C:/Windows/Fonts/{font_name}")
-            if font_path.exists():
-                return ImageFont.truetype(str(font_path), size)
-            return ImageFont.truetype("C:/Windows/Fonts/arial.ttf", size)
-        families = (
-            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
-            if bold
-            else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
-        )
-        return ImageFont.truetype(families, size)
-    except Exception:
-        return ImageFont.load_default()
+    candidates = []
+    if sys.platform == "win32":
+        candidates = [
+            "C:/Windows/Fonts/DejaVuSans-Bold.ttf" if bold else "C:/Windows/Fonts/DejaVuSans.ttf",
+            "C:/Windows/Fonts/arialbd.ttf" if bold else "C:/Windows/Fonts/arial.ttf",
+            "C:/Windows/Fonts/arial.ttf",
+        ]
+    else:
+        candidates = [
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        ]
+
+    for path in candidates:
+        try:
+            return ImageFont.truetype(path, size)
+        except Exception:
+            continue
+    return ImageFont.load_default()
 
 
 def overlay_piranewz_branding(

@@ -59,7 +59,7 @@ class TelegramPoster:
                 image_bytes,
                 logo_path=logo_path,
                 channel_name="@piranewz",
-                corner="top-right",
+                corner="top-left",
             )
 
         # English channel
