@@ -5,8 +5,8 @@ from typing import Any
 from PIL import Image, ImageDraw
 
 # Piranewz dark piranha palette.
-INK_BLACK = (8, 8, 12)
-DEEP_CHARCOAL = (18, 18, 26)
+INK_BLACK = (6, 8, 16)
+DEEP_NAVY = (16, 22, 42)
 PALE_GRAY = (210, 210, 220)
 MUTED_GRAY = (130, 130, 145)
 BLOOD_RED = (200, 40, 60)
@@ -23,11 +23,11 @@ def _interpolate(c1: tuple[int, int, int], c2: tuple[int, int, int], t: float) -
 
 
 def draw_dark_gradient(draw: ImageDraw.Draw, size: tuple[int, int]) -> None:
-    """Draw a subtle dark vertical gradient background."""
+    """Draw a dark black-to-navy-blue vertical gradient background."""
     width, height = size
     for y in range(height):
         t = y / height
-        color = _interpolate(INK_BLACK, DEEP_CHARCOAL, t)
+        color = _interpolate(INK_BLACK, DEEP_NAVY, t)
         draw.line([(0, y), (width, y)], fill=color)
 
 

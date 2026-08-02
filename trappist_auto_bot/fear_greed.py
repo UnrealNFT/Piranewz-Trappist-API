@@ -110,7 +110,7 @@ def create_gauge_image(
     # Title
     title = "FEAR & GREED INDEX"
     title_bbox = draw.textbbox((0, 0), title, font=title_font)
-    draw.text(((width - (title_bbox[2] - title_bbox[0])) // 2, 180), title, font=title_font, fill=ROSE_TINT)
+    draw.text(((width - (title_bbox[2] - title_bbox[0])) // 2, 180), title, font=title_font, fill=PALE_GRAY)
 
     value = fear_greed_data.get("value", 50)
     classification = fear_greed_data.get("value_classification", "Neutral")
