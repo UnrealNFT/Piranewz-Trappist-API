@@ -69,7 +69,7 @@ def build_price_image(
 
     # Header (shifted right so it does not overlap the top-left logo).
     header_x = MARGIN + 180
-    draw.text((header_x, MARGIN), "Crypto Watch", font=font_title, fill=TEXT_COLOR)
+    draw.text((header_x, MARGIN), "CRYPTO WATCH", font=font_title, fill=PALE_GRAY)
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
     draw.text((header_x, MARGIN + 60), now, font=font_small, fill=(150, 150, 165))
 
