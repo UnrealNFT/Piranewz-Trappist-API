@@ -20,6 +20,7 @@ from trappist_auto_bot.image.generator import TrappistImageGenerator
 from trappist_auto_bot.image.pollinations_generator import PollinationsError, PollinationsImageGenerator
 from trappist_auto_bot.image.wavespeed_generator import WaveSpeedError, WaveSpeedImageGenerator
 from trappist_auto_bot.price_poster import post_price_update
+from trappist_auto_bot.translation import generate_price_hashtags
 from trappist_auto_bot.rss.fetcher import RssFetcher
 from trappist_auto_bot.storage.db import Database
 from trappist_auto_bot.telegram.poster import TelegramPoster
@@ -372,10 +373,19 @@ class GenerationScheduler:
             try:
                 cmc_key = getattr(self.config, "cmc_api_key", "")
                 prices = fetch_prices(symbols, cmc_api_key=cmc_key)
+
+                hashtags = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    generate_price_hashtags,
+                    symbols,
+                    getattr(self.config, "groq_api_key", ""),
+                )
+
                 await post_price_update(
                     self.poster,
                     prices,
                     logo_path=self.config.logo_path,
+                    hashtags=hashtags,
                 )
                 logger.info("Posted price update for %s", ", ".join(symbols))
             except PriceProviderError as exc:

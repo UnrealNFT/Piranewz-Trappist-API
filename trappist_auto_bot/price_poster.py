@@ -1,119 +1,189 @@
 """Post crypto price updates to Telegram with a locally generated image."""
 
+import io
+import math
+import random
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
+from trappist_auto_bot.image.branding import overlay_piranewz_branding
 from trappist_auto_bot.telegram.poster import TelegramPoster
 from trappist_auto_bot.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Colors and layout for the price card.
-BG_COLOR = (15, 15, 25)
-CARD_COLOR = (30, 30, 45)
-TEXT_COLOR = (255, 255, 255)
-UP_COLOR = (0, 255, 128)
-DOWN_COLOR = (255, 80, 80)
-ACCENT_COLOR = (100, 80, 255)
+# Price card palette — dark underwater / chaotic manga vibe.
+DEEP_BLUE = (8, 12, 28)
+MID_BLUE = (18, 28, 58)
+AQUA_GLOW = (0, 220, 180)
+TEAL = (0, 160, 200)
+PURPLE = (120, 60, 200)
+TEXT_COLOR = (245, 245, 255)
+UP_COLOR = (0, 255, 150)
+DOWN_COLOR = (255, 70, 100)
 
 IMAGE_SIZE = (1200, 630)
 MARGIN = 60
-CARD_RADIUS = 24
+
+
+def _load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    """Load a TrueType font, falling back to default."""
+    import sys
+
+    try:
+        if sys.platform == "win32":
+            font_name = "arialbd.ttf" if bold else "arial.ttf"
+            font_path = Path(f"C:/Windows/Fonts/{font_name}")
+            if font_path.exists():
+                return ImageFont.truetype(str(font_path), size)
+            return ImageFont.truetype("C:/Windows/Fonts/arial.ttf", size)
+        families = (
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+            if bold
+            else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+        )
+        return ImageFont.truetype(families, size)
+    except Exception:
+        return ImageFont.load_default()
+
+
+def _draw_underwater_background(draw: ImageDraw.Draw, size: tuple[int, int]) -> None:
+    """Draw a dark underwater chaotic background with wave streaks and bubbles."""
+    width, height = size
+
+    # Chaotic wave streaks.
+    for i in range(12):
+        y_base = int(height * (0.1 + 0.08 * i))
+        amplitude = random.randint(20, 60)
+        freq = random.uniform(0.01, 0.03)
+        phase = random.uniform(0, math.pi * 2)
+        alpha = random.randint(20, 60)
+        color = (*TEAL, alpha) if i % 2 == 0 else (*PURPLE, alpha)
+        points = []
+        for x in range(0, width + 20, 20):
+            y = y_base + int(amplitude * math.sin(freq * x + phase))
+            points.append((x, y))
+        for thickness in range(3):
+            offset_points = [(x, y + thickness) for x, y in points]
+            draw.line(offset_points, fill=color, width=2)
+
+    # Bubble clusters.
+    for _ in range(40):
+        x = random.randint(0, width)
+        y = random.randint(0, height)
+        r = random.randint(2, 8)
+        alpha = random.randint(30, 80)
+        draw.ellipse([x - r, y - r, x + r, y + r], fill=(*AQUA_GLOW, alpha))
 
 
 def build_price_image(
     prices: dict[str, dict[str, Any]],
     logo_path: str = "",
 ) -> bytes:
-    """Generate a 1200x630 price card image."""
-    img = Image.new("RGB", IMAGE_SIZE, BG_COLOR)
+    """Generate a 1200x630 underwater-themed price card image."""
+    img = Image.new("RGBA", IMAGE_SIZE, DEEP_BLUE)
     draw = ImageDraw.Draw(img)
 
-    # Try to load fonts; fall back to defaults.
-    try:
-        font_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 48)
-        font_coin = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 42)
-        font_price = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 36)
-        font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
-    except OSError:
-        font_title = ImageFont.load_default()
-        font_coin = font_title
-        font_price = font_title
-        font_small = font_title
+    # Deep gradient base.
+    for y in range(IMAGE_SIZE[1]):
+        ratio = y / IMAGE_SIZE[1]
+        r = int(DEEP_BLUE[0] + (MID_BLUE[0] - DEEP_BLUE[0]) * ratio)
+        g = int(DEEP_BLUE[1] + (MID_BLUE[1] - DEEP_BLUE[1]) * ratio)
+        b = int(DEEP_BLUE[2] + (MID_BLUE[2] - DEEP_BLUE[2]) * ratio)
+        draw.line([(0, y), (IMAGE_SIZE[0], y)], fill=(r, g, b, 255))
 
-    # Header line.
-    draw.text((MARGIN, MARGIN), "Crypto Watch", font=font_title, fill=ACCENT_COLOR)
+    _draw_underwater_background(draw, IMAGE_SIZE)
+
+    # Soft vignette.
+    vignette = Image.new("RGBA", IMAGE_SIZE, (0, 0, 0, 0))
+    v_draw = ImageDraw.Draw(vignette)
+    for i in range(120):
+        alpha = int(80 * (i / 120))
+        v_draw.rectangle([i, i, IMAGE_SIZE[0] - i, IMAGE_SIZE[1] - i], outline=(0, 0, 0, alpha))
+    img = Image.alpha_composite(img, vignette)
+    draw = ImageDraw.Draw(img)
+
+    # Fonts.
+    font_title = _load_font(52, bold=True)
+    font_coin = _load_font(40, bold=True)
+    font_price = _load_font(34)
+    font_small = _load_font(22)
+
+    # Header.
+    draw.text((MARGIN, MARGIN), "🌊 Crypto Watch", font=font_title, fill=AQUA_GLOW)
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-    draw.text((MARGIN, MARGIN + 60), now, font=font_small, fill=(180, 180, 180))
+    draw.text((MARGIN, MARGIN + 65), now, font=font_small, fill=(160, 180, 200))
 
-    # Draw a card for each coin.
+    # Cards.
     coins = list(prices.items())
-    card_height = 100
-    gap = 20
-    start_y = MARGIN + 140
+    card_height = 110
+    gap = 18
+    start_y = MARGIN + 150
     for i, (symbol, data) in enumerate(coins):
         y = start_y + i * (card_height + gap)
-        draw.rounded_rectangle(
+
+        # Glass card with subtle border.
+        card_overlay = Image.new("RGBA", IMAGE_SIZE, (0, 0, 0, 0))
+        card_draw = ImageDraw.Draw(card_overlay)
+        card_draw.rounded_rectangle(
             [(MARGIN, y), (IMAGE_SIZE[0] - MARGIN, y + card_height)],
-            radius=16,
-            fill=CARD_COLOR,
+            radius=20,
+            fill=(10, 18, 38, 220),
+            outline=(*AQUA_GLOW, 120),
+            width=2,
         )
+        img = Image.alpha_composite(img, card_overlay)
+        draw = ImageDraw.Draw(img)
 
         price = data.get("usd", 0)
         change = data.get("change_24h", 0)
         change_str = f"{change:+.2f}%"
         change_color = UP_COLOR if change >= 0 else DOWN_COLOR
 
-        draw.text((MARGIN + 30, y + 25), symbol, font=font_coin, fill=TEXT_COLOR)
+        draw.text((MARGIN + 30, y + 30), symbol, font=font_coin, fill=TEXT_COLOR)
         draw.text(
-            (IMAGE_SIZE[0] - MARGIN - 30, y + 30),
+            (IMAGE_SIZE[0] - MARGIN - 30, y + 35),
             f"${price:,.4f}" if price < 1 else f"${price:,.2f}",
             font=font_price,
             fill=TEXT_COLOR,
             anchor="ra",
         )
         draw.text(
-            (IMAGE_SIZE[0] - MARGIN - 30, y + 70),
+            (IMAGE_SIZE[0] - MARGIN - 30, y + 75),
             change_str,
             font=font_small,
             fill=change_color,
             anchor="ra",
         )
 
-    # Footer / watermark.
+    # Footer watermark.
     draw.text(
-        (IMAGE_SIZE[0] - MARGIN, IMAGE_SIZE[1] - MARGIN),
+        (MARGIN, IMAGE_SIZE[1] - MARGIN),
         "@piranewz · @piranewz_fr",
         font=font_small,
-        fill=(120, 120, 120),
-        anchor="rb",
+        fill=(120, 140, 160),
+        anchor="lb",
     )
 
-    # Optional logo overlay.
+    # Add uniform Piranewz branding on the right.
     if logo_path and Path(logo_path).exists():
-        try:
-            logo = Image.open(logo_path).convert("RGBA")
-            logo.thumbnail((100, 100))
-            img.paste(logo, (IMAGE_SIZE[0] - MARGIN - 120, MARGIN), logo)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Could not overlay logo: %s", exc)
+        return overlay_piranewz_branding(img, logo_path=logo_path, channel_name="@piranewz", corner="top-right")
 
-    buf = BytesIO()
-    img.save(buf, format="PNG")
-    return buf.getvalue()
+    output = io.BytesIO()
+    img.convert("RGB").save(output, format="PNG")
+    return output.getvalue()
 
 
-# BytesIO is needed for the image buffer.
-from io import BytesIO  # noqa: E402
-
-
-def build_price_caption(prices: dict[str, dict[str, Any]]) -> tuple[str, str]:
+def build_price_caption(
+    prices: dict[str, dict[str, Any]],
+    hashtags: list[str] | None = None,
+) -> tuple[str, str]:
     """Return (caption_en, caption_fr) for a price update."""
-    lines_en = ["📊 Crypto Price Update\n"]
-    lines_fr = ["📊 Mise à jour des prix crypto\n"]
+    lines_en = ["🌊 Crypto Price Update\n"]
+    lines_fr = ["🌊 Mise à jour des prix crypto\n"]
     for symbol, data in prices.items():
         price = data.get("usd", 0)
         change = data.get("change_24h", 0)
@@ -123,19 +193,19 @@ def build_price_caption(prices: dict[str, dict[str, Any]]) -> tuple[str, str]:
         lines_en.append(line)
         lines_fr.append(line)
 
-    footer_en = "\n#Crypto #Bitcoin #Ethereum #Casper #Algorand #Dogecoin #Solana #Altcoins"
-    footer_fr = "\n#Crypto #Bitcoin #Ethereum #Casper #Algorand #Dogecoin #Solana #Altcoins"
-    return "\n".join(lines_en) + footer_en, "\n".join(lines_fr) + footer_fr
+    tags = " ".join(hashtags) if hashtags else "#Crypto #Bitcoin #Ethereum #Casper #Algorand #Dogecoin #Solana #Altcoins"
+    return "\n".join(lines_en) + "\n" + tags, "\n".join(lines_fr) + "\n" + tags
 
 
 async def post_price_update(
     poster: TelegramPoster,
     prices: dict[str, dict[str, Any]],
     logo_path: str = "",
+    hashtags: list[str] | None = None,
 ) -> dict[str, Any]:
     """Generate a price image and post it to Telegram (EN + FR channels)."""
     image_bytes = build_price_image(prices, logo_path=logo_path)
-    caption_en, caption_fr = build_price_caption(prices)
+    caption_en, caption_fr = build_price_caption(prices, hashtags=hashtags)
     logger.info("Posting price update for: %s", ", ".join(prices.keys()))
     return await poster.post_image_bytes(
         image_bytes=image_bytes,

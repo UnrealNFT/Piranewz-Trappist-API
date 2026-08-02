@@ -219,3 +219,100 @@ def _extract_json(text: str) -> dict[str, Any] | None:
         except json.JSONDecodeError:
             pass
     return None
+
+
+DEFAULT_PRICE_HASHTAGS = [
+    "#Crypto",
+    "#Bitcoin",
+    "#Ethereum",
+    "#Casper",
+    "#Algorand",
+    "#Dogecoin",
+    "#Solana",
+    "#Altcoins",
+]
+
+
+def _build_hashtag_prompt(symbols: list[str], pool: list[str]) -> str:
+    return f"""You are a crypto social media expert. Pick 4 to 6 relevant hashtags for a Telegram price update about {', '.join(symbols)}.
+
+Choose from this pool (you may drop some, repeat is allowed only if really relevant):
+{', '.join(pool)}
+
+You may ADD 0 to 2 extra hashtags if they fit the current market vibe, but keep them crypto-related.
+
+Respond ONLY with valid JSON:
+{{"hashtags": ["#Tag1", "#Tag2", "#Tag3", "#Tag4"]}}
+"""
+
+
+def generate_price_hashtags(
+    symbols: list[str],
+    groq_api_key: str | None = None,
+    groq_model: str = DEFAULT_GROQ_MODEL,
+    ollama_url: str = "http://localhost:11434/api/generate",
+    ollama_model: str = "llama3.2:latest",
+) -> list[str]:
+    """Generate a curated list of hashtags for a price update.
+
+    Tries Groq first, then Ollama local, then falls back to the full fixed pool.
+    """
+    prompt = _build_hashtag_prompt(symbols, DEFAULT_PRICE_HASHTAGS)
+
+    # 1. Groq
+    if groq_api_key:
+        try:
+            response = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {groq_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": groq_model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.7,
+                    "max_tokens": 128,
+                },
+                timeout=30,
+            )
+            response.raise_for_status()
+            content = response.json()["choices"][0]["message"]["content"].strip()
+            data = _extract_json(content)
+            if data and "hashtags" in data:
+                return _normalize_hashtags(data["hashtags"])
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Groq hashtag generation failed: %s", exc)
+
+    # 2. Ollama local
+    try:
+        response = requests.post(
+            ollama_url,
+            json={"model": ollama_model, "prompt": prompt, "stream": False, "options": {"temperature": 0.7}},
+            timeout=60,
+        )
+        response.raise_for_status()
+        content = response.json().get("response", "").strip()
+        data = _extract_json(content)
+        if data and "hashtags" in data:
+            return _normalize_hashtags(data["hashtags"])
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Ollama hashtag generation failed: %s", exc)
+
+    # 3. Fallback
+    return DEFAULT_PRICE_HASHTAGS
+
+
+def _normalize_hashtags(tags: list[Any]) -> list[str]:
+    """Clean and validate hashtag list."""
+    cleaned: list[str] = []
+    for tag in tags:
+        if not isinstance(tag, str):
+            continue
+        tag = tag.strip()
+        if not tag.startswith("#"):
+            tag = "#" + tag
+        tag = re.sub(r"\s+", "", tag)
+        if len(tag) > 1 and tag not in cleaned:
+            cleaned.append(tag)
+    return cleaned if cleaned else DEFAULT_PRICE_HASHTAGS
