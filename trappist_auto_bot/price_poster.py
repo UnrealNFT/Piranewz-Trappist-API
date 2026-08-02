@@ -20,11 +20,12 @@ from trappist_auto_bot.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-TEXT_COLOR = PALE_GRAY
-UP_COLOR = ROSE_TINT
+TEXT_COLOR = (255, 255, 255)
+UP_COLOR = (0, 230, 120)
 DOWN_COLOR = BLOOD_RED
-IMAGE_SIZE = (1200, 630)
-MARGIN = 60
+CARD_BORDER = (180, 180, 190)
+IMAGE_SIZE = (1200, 1200)
+MARGIN = 70
 
 
 def _load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
@@ -56,27 +57,27 @@ def build_price_image(
     prices: dict[str, dict[str, Any]],
     logo_path: str = "",
 ) -> bytes:
-    """Generate a 1200x630 Piranewz-themed price card image."""
+    """Generate a 1200x1200 Piranewz-themed price card image."""
     img = create_theme_background(IMAGE_SIZE)
     draw = ImageDraw.Draw(img)
 
     # Fonts.
-    font_title = _load_font(52, bold=True)
-    font_coin = _load_font(40, bold=True)
-    font_price = _load_font(34)
-    font_small = _load_font(22)
+    font_title = _load_font(56, bold=True)
+    font_coin = _load_font(48, bold=True)
+    font_price = _load_font(40)
+    font_small = _load_font(26)
 
     # Header (shifted right so it does not overlap the top-left logo).
-    header_x = MARGIN + 220
+    header_x = MARGIN + 230
     draw.text((header_x, MARGIN), "Crypto Watch", font=font_title, fill=ROSE_TINT)
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-    draw.text((header_x, MARGIN + 65), now, font=font_small, fill=(130, 130, 145))
+    draw.text((header_x, MARGIN + 70), now, font=font_small, fill=(150, 150, 165))
 
     # Cards.
     coins = list(prices.items())
-    card_height = 110
-    gap = 18
-    start_y = MARGIN + 150
+    card_height = 140
+    gap = 24
+    start_y = MARGIN + 180
     for i, (symbol, data) in enumerate(coins):
         y = start_y + i * (card_height + gap)
 
@@ -84,9 +85,9 @@ def build_price_image(
         card_draw = ImageDraw.Draw(card_overlay)
         card_draw.rounded_rectangle(
             [(MARGIN, y), (IMAGE_SIZE[0] - MARGIN, y + card_height)],
-            radius=20,
-            fill=INK_BLACK + (210,),
-            outline=ROSE_TINT + (120,),
+            radius=24,
+            fill=INK_BLACK + (200,),
+            outline=CARD_BORDER + (140,),
             width=2,
         )
         img = Image.alpha_composite(img, card_overlay)
@@ -97,16 +98,16 @@ def build_price_image(
         change_str = f"{change:+.2f}%"
         change_color = UP_COLOR if change >= 0 else DOWN_COLOR
 
-        draw.text((MARGIN + 30, y + 30), symbol, font=font_coin, fill=TEXT_COLOR)
+        draw.text((MARGIN + 35, y + 35), symbol, font=font_coin, fill=TEXT_COLOR)
         draw.text(
-            (IMAGE_SIZE[0] - MARGIN - 30, y + 35),
+            (IMAGE_SIZE[0] - MARGIN - 35, y + 45),
             f"${price:,.4f}" if price < 1 else f"${price:,.2f}",
             font=font_price,
             fill=TEXT_COLOR,
             anchor="ra",
         )
         draw.text(
-            (IMAGE_SIZE[0] - MARGIN - 30, y + 75),
+            (IMAGE_SIZE[0] - MARGIN - 35, y + 95),
             change_str,
             font=font_small,
             fill=change_color,

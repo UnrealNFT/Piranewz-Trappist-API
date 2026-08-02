@@ -45,26 +45,10 @@ def draw_subtle_noise(draw: ImageDraw.Draw, size: tuple[int, int], density: int 
         draw.ellipse([x - r, y - r, x + r, y + r], fill=(*PALE_GRAY, alpha))
 
 
-def draw_piranha_aura(draw: ImageDraw.Draw, size: tuple[int, int]) -> None:
-    """Draw a very subtle red glow behind the center."""
-    width, height = size
-    cx, cy = width // 2, height // 2
-    max_radius = min(width, height) // 3
-    for radius in range(max_radius, 0, -12):
-        t = radius / max_radius
-        alpha = int(6 * (1 - t))
-        draw.ellipse(
-            [cx - radius, cy - radius, cx + radius, cy + radius],
-            outline=(*BLOOD_RED, alpha),
-            width=1,
-        )
-
-
 def create_theme_background(size: tuple[int, int]) -> Image.Image:
     """Create the standard Piranewz dark background for generated cards."""
     img = Image.new("RGBA", size, INK_BLACK)
     draw = ImageDraw.Draw(img)
     draw_dark_gradient(draw, size)
-    draw_piranha_aura(draw, size)
     draw_subtle_noise(draw, size)
     return img
