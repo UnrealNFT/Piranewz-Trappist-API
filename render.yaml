@@ -8,7 +8,7 @@ services:
       pip install -r requirements.txt
       pip install -e .
       npm install
-    startCommand: python -m trappist_auto_bot.main
+    startCommand: PYTHONPATH=/opt/render/project/src python -m trappist_auto_bot.main
     envVars:
       - key: PYTHONUNBUFFERED
         value: "1"
