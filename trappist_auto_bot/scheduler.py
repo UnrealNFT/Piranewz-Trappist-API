@@ -222,18 +222,23 @@ class GenerationScheduler:
             "text_only": not with_image,
         }
 
-    async def _maybe_post_fear_greed(self) -> dict[str, Any] | None:
-        """Fetch and post the Fear & Greed index image, at most once per hour."""
+    async def _maybe_post_fear_greed(self, force: bool = False) -> dict[str, Any] | None:
+        """Fetch and post the Fear & Greed index image, at most once per hour.
+
+        Args:
+            force: If True, ignore the one-hour throttle. Useful on first boot.
+        """
         now = datetime.utcnow()
-        last_raw = self.db.get_state("last_fear_greed_post")
-        if last_raw:
-            try:
-                last = datetime.fromisoformat(last_raw)
-                if (now - last).total_seconds() < 3600:
-                    logger.info("Fear & Greed already posted within the last hour")
-                    return None
-            except ValueError:
-                pass
+        if not force:
+            last_raw = self.db.get_state("last_fear_greed_post")
+            if last_raw:
+                try:
+                    last = datetime.fromisoformat(last_raw)
+                    if (now - last).total_seconds() < 3600:
+                        logger.info("Fear & Greed already posted within the last hour")
+                        return None
+                except ValueError:
+                    pass
 
         data = await asyncio.get_event_loop().run_in_executor(None, fetch_index)
         image_bytes = await asyncio.get_event_loop().run_in_executor(
@@ -280,6 +285,7 @@ class GenerationScheduler:
         self._image_lock = asyncio.Lock()
         self._posted_ids: set[str] = set()
         self._cycle_count = 0
+        self._first_rss_cycle = True
 
         await asyncio.gather(
             self._rss_scheduler(interval),
@@ -295,11 +301,15 @@ class GenerationScheduler:
                 logger.info("RSS fetch cycle starting...")
 
                 # Optional Fear & Greed on its own cadence (not blocking).
+                # On the first cycle we force-post it so a redeploy does not
+                # get blocked by the persisted "posted within the last hour" state.
                 if getattr(self.config, "post_fear_greed", True):
                     try:
-                        await self._maybe_post_fear_greed()
+                        await self._maybe_post_fear_greed(force=self._first_rss_cycle)
                     except Exception as exc:  # noqa: BLE001
                         logger.warning("Fear & Greed post failed: %s", exc)
+
+                self._first_rss_cycle = False
 
                 raw_articles = self.fetcher.get_articles(
                     limit=self.config.max_articles_per_cycle,
