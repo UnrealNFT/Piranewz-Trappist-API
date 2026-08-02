@@ -123,8 +123,8 @@ def build_price_caption(prices: dict[str, dict[str, Any]]) -> tuple[str, str]:
         lines_en.append(line)
         lines_fr.append(line)
 
-    footer_en = "\n#Crypto #Bitcoin #Ethereum #Casper #Altcoins"
-    footer_fr = "\n#Crypto #Bitcoin #Ethereum #Casper #Altcoins"
+    footer_en = "\n#Crypto #Bitcoin #Ethereum #Casper #Algorand #Dogecoin #Solana #Altcoins"
+    footer_fr = "\n#Crypto #Bitcoin #Ethereum #Casper #Algorand #Dogecoin #Solana #Altcoins"
     return "\n".join(lines_en) + footer_en, "\n".join(lines_fr) + footer_fr
 
 
