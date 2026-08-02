@@ -357,13 +357,16 @@ class GenerationScheduler:
                 await asyncio.sleep(delay_seconds)
 
     async def _price_scheduler(self) -> None:
-        """Post a crypto price update every 2 hours, alternating coin cycles."""
+        """Post a crypto price update every N hours, alternating coin cycles.
+
+        Posts immediately on startup so the channel sees a price update right
+        away, then waits for the configured interval before the next cycle.
+        """
         interval_hours = getattr(self.config, "price_post_interval_hours", 2)
         interval_seconds = interval_hours * 3600
         cycle_index = 0
 
         while True:
-            await asyncio.sleep(interval_seconds)
             symbols = PRICE_CYCLES[cycle_index % len(PRICE_CYCLES)]
             cycle_index += 1
             try:
@@ -379,6 +382,8 @@ class GenerationScheduler:
                 logger.warning("Price update failed: %s", exc)
             except Exception as exc:  # noqa: BLE001
                 logger.exception("Unexpected error posting price update: %s", exc)
+
+            await asyncio.sleep(interval_seconds)
 
     def _select_article_to_illustrate(
         self, articles: list[dict[str, Any]]
