@@ -1,44 +1,50 @@
 # Piranewz AI Journalist 🤖🎨
 
-Bot Telegram autonome, bilingue EN/FR, qui alimente les canaux **@piranewz** et **@piranewz_fr** avec des actualités crypto. Il récupère les flux RSS, illustre une sélection d'articles via **TrappistAI** (paiement x402 en CSPR), puis publie les images et les posts texte sur Telegram.
+Created by the developer of [Trappist.land](https://trappist.land).
 
-Inspiré de [`UnrealNFT/crypto-news-bot`](https://github.com/UnrealNFT/crypto-news-bot).
+Piranewz is an autonomous, bilingual (EN/FR) Telegram news bot that powers the channels **@piranewz** and **@piranewz_fr**. It reads crypto RSS feeds, summarizes and translates articles, generates matching illustrations through **TrappistAI**, and publishes both image and text posts to Telegram.
 
-## ✨ Ce que fait le bot
+Every image generation is paid for via the **x402 payment protocol** on the **Casper Network**. Each post creates an on-chain CSPR transaction. Casper mainnet transaction fees cost around **0.1 CSPR**, and since [CSPR fees are burned by the network](https://casper.network), every article Piranewz publishes contributes to burning CSPR.
 
-- Récupère les actualités crypto depuis ~20 flux RSS
-- Déduplique et filtre les articles
-- Choisit **un seul article à illustrer par cycle** (sélection aléatoire ↔ score visuel)
-- Génère l'image sur TrappistAI en payant en CSPR via x402
-- Poste l'image **et** sa version texte sur @piranewz (EN) et @piranewz_fr (FR)
-- Ajoute le watermark Piranewz + badge Telegram
-- Publie l'indice Fear & Greed une fois par heure
+Inspired by [`UnrealNFT/crypto-news-bot`](https://github.com/UnrealNFT/crypto-news-bot).
+
+## ✨ What the bot does
+
+- Fetches crypto news from ~20 RSS feeds
+- Deduplicates and filters articles
+- Picks articles to illustrate each cycle
+- Generates images through TrappistAI, paying via x402 on Casper
+- Posts images and captions to @piranewz (EN) and @piranewz_fr (FR)
+- Adds the Piranewz watermark and Telegram badge
+- Publishes the Fear & Greed Index on a regular schedule
+- Posts crypto price updates with locally generated cards
 
 ## 📁 Structure
 
 ```
 trappist-auto-bot/
-├── main.py                  # Point d'entrée
+├── main.py                  # Entry point
 ├── trappist_auto_bot/
-│   ├── config.py            # Configuration env
-│   ├── scheduler.py         # Boucle autonome en mode file
-│   ├── formatting.py        # Captions + prompts
-│   ├── translation.py       # Résumé FR/EN via Groq
-│   ├── fear_greed.py        # Fear & Greed index
-│   ├── x402/                # Client + signer x402
-│   ├── image/               # Générateurs TrappistAI/WaveSpeed/Pollinations
-│   ├── telegram/            # Poster Telegram bilingue
-│   ├── rss/                 # Fetch + cleaning RSS
-│   ├── storage/             # SQLite
+│   ├── config.py            # Environment configuration
+│   ├── scheduler.py         # Autonomous job queue
+│   ├── formatting.py        # Captions and prompts
+│   ├── translation.py       # EN/FR summaries via Groq
+│   ├── fear_greed.py        # Fear & Greed gauge image
+│   ├── price_poster.py      # Crypto price card image
+│   ├── x402/                # x402 client and signer
+│   ├── image/               # Image generators + shared branding/theme
+│   ├── telegram/            # Bilingual Telegram poster
+│   ├── rss/                 # RSS fetching and cleaning
+│   ├── storage/             # SQLite persistence
 │   └── utils/
-├── scripts/                 # Helpers Node.js pour signer les deploys
-├── assets/                  # Logo + badge Telegram
-├── render.yaml              # Déploiement Render (Blueprints)
+├── scripts/                 # Node.js helpers for signing deploys
+├── assets/                  # Logo and Telegram badge
+├── render.yaml              # Render Blueprint
 ├── requirements.txt
 └── README.md
 ```
 
-## 🚀 Installation locale
+## 🚀 Local installation
 
 ```bash
 cd trappist-auto-bot
@@ -55,76 +61,78 @@ npm install
 
 ## ⚙️ Configuration
 
-Copie le fichier exemple et remplis tes secrets :
+Copy the example file and fill in your secrets:
 
 ```bash
 cp .env.example .env
 ```
 
-Variables **requises** :
+Required variables:
 
-- `TELEGRAM_BOT_TOKEN` — token de @BotFather
-- `TELEGRAM_CHAT_ID` — canal principal (EN)
-- `TELEGRAM_CHAT_ID_FR` — canal français (FR)
-- `CASPER_PUBLIC_KEY` — clé publique du wallet (02… ou 01…)
-- `CASPER_PRIVATE_KEY_BASE64` — clé privée encodée en base64 (PEM)
-- `GROQ_API_KEY` — pour la traduction/résumé
+- `TELEGRAM_BOT_TOKEN` — from @BotFather
+- `TELEGRAM_CHAT_ID` — main channel (EN)
+- `TELEGRAM_CHAT_ID_FR` — French channel (FR)
+- `CASPER_PUBLIC_KEY` — wallet public key with `02` or `01` prefix
+- `CASPER_PRIVATE_KEY_PATH` — path to the PEM private key file
+- `GROQ_API_KEY` — for summaries and translation
 
-Variables importantes :
+Important variables:
 
-- `POST_INTERVAL_MINUTES=4` — fréquence de check RSS
-- `MAX_ARTICLES_PER_CYCLE=4` — articles récupérés par check
-- `DELAY_BETWEEN_POSTS=60` — délai entre deux posts
-- `DAILY_BUDGET_MOTES` — budget CSPR journalier
-- `MAX_PAYMENT_MOTES` — plafond par image
+- `TRAPIST_API_URL` — TrappistAI endpoint (default: `https://trappist.land`)
+- `POST_INTERVAL_MINUTES=4` — RSS check frequency
+- `MAX_ARTICLES_PER_CYCLE=4` — articles fetched per check
+- `DELAY_BETWEEN_POSTS=60` — delay between posts
+- `DAILY_BUDGET_MOTES` — daily CSPR spending budget
+- `MAX_PAYMENT_MOTES` — per-image spending cap
+- `PRICE_POST_INTERVAL_HOURS=2` — price update interval
 
-## ▶️ Lancer le bot
+## ▶️ Run the bot
 
-Mode autonome :
+Autonomous mode:
 
 ```bash
 python main.py
 ```
 
-Un seul cycle (test) :
+Single cycle (test):
 
 ```bash
 python main.py --once
 ```
 
-## 🚀 Déploiement Render
+## 🚀 Deploy on Render
 
-### Avec le dashboard
+### Using the dashboard
 
-1. Crée un repo GitHub propre (`.env` et `data/` sont dans `.gitignore`).
-2. Sur [render.com](https://render.com), clique **New + → Background Worker**.
-3. Choisis ton repo.
-4. Configure :
-   - **Name** : `piranewz-bot`
-   - **Runtime** : Python 3
-   - **Build Command** : `pip install -r requirements.txt && npm install`
-   - **Start Command** : `python main.py`
-   - **Plan** : Starter (pour du 24/7)
-5. Dans **Disks**, ajoute un disque :
-   - Name : `piranewz-data`
-   - Mount Path : `/data`
-   - Size : 1 GB
-6. Dans **Environment**, colle toutes les variables de ton `.env`.
-7. Clique **Create Background Worker**.
+1. Push this repo to GitHub (`.env` and `data/` are in `.gitignore`).
+2. On [render.com](https://render.com), click **New + → Background Worker**.
+3. Select the repo.
+4. Configure:
+   - **Name**: `piranewz-bot`
+   - **Runtime**: Python 3
+   - **Build Command**: `pip install -r requirements.txt && npm install`
+   - **Start Command**: `python main.py`
+   - **Plan**: Starter (for 24/7 uptime)
+5. Under **Disks**, add a disk:
+   - Name: `piranewz-data`
+   - Mount Path: `/data`
+   - Size: 1 GB
+6. Under **Environment**, paste the variables from your `.env`.
+7. Click **Create Background Worker**.
 
-### Avec `render.yaml` (Blueprints)
+### Using `render.yaml` (Blueprints)
 
-1. Push ce repo sur GitHub.
-2. Sur Render, clique **New + → Blueprint**.
-3. Sélectionne le repo.
-4. Remplis les variables marquées `sync: false` (secrets).
+1. Push this repo to GitHub.
+2. On Render, click **New + → Blueprint**.
+3. Select the repo.
+4. Fill in the variables marked `sync: false` (secrets).
 
-## ⚠️ Avertissements
+## ⚠️ Warnings
 
-- Ce bot dépense **vraiment** du CSPR en production.
-- Configure impérativement `MAX_PAYMENT_MOTES` et `DAILY_BUDGET_MOTES`.
-- Ne committe jamais `.env`, `*.pem`, `data/` ni les fichiers de debug JSON.
+- This bot spends **real CSPR** in production.
+- Set `MAX_PAYMENT_MOTES` and `DAILY_BUDGET_MOTES` carefully.
+- Never commit `.env`, `*.pem`, `data/`, or debug JSON files.
 
-## 📜 Licence
+## 📜 License
 
 MIT
