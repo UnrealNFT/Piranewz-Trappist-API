@@ -142,8 +142,8 @@ class X402Client:
         self,
         prompt: str,
         deploy_json: dict[str, Any],
-        timeout: int = 300,
-        max_retries: int = 2,
+        timeout: int = 600,
+        max_retries: int = 5,
     ) -> dict[str, Any]:
         """Submit the signed deploy and return the generated image response."""
         url = f"{self.api_url}/api/v1/agent/generate/image"
@@ -157,6 +157,7 @@ class X402Client:
         self._broadcast_deploy(deploy_json)
 
         last_error: Exception | None = None
+        backoff_delays = [10, 20, 30, 60, 120]
         for attempt in range(1, max_retries + 1):
             try:
                 response = requests.post(
@@ -172,15 +173,22 @@ class X402Client:
 
                 # Server-side timeouts can happen while generation is still running.
                 # Retry a few times before giving up.
-                if response.status_code in (502, 503, 504) and attempt < max_retries:
+                if response.status_code in (400, 502, 503, 504) and attempt < max_retries:
+                    # HTTP 400 with "Deploy hash already used" usually means the
+                    # payment was accepted but the gateway timed out before returning
+                    # the image. Re-submitting the same signature may return the
+                    # completed image once generation finishes.
+                    is_already_used = response.status_code == 400 and "already used" in response.text.lower()
+                    delay = backoff_delays[min(attempt - 1, len(backoff_delays) - 1)]
                     logger.warning(
-                        "Gateway timeout (HTTP %s), retrying in %ss... (attempt %s/%s)",
+                        "%s (HTTP %s), retrying in %ss... (attempt %s/%s)",
+                        "Deploy hash already used, waiting for image generation" if is_already_used else "Gateway timeout",
                         response.status_code,
-                        attempt * 5,
+                        delay,
                         attempt,
                         max_retries,
                     )
-                    time.sleep(attempt * 5)
+                    time.sleep(delay)
                     continue
 
                 raise X402Error(
@@ -190,9 +198,13 @@ class X402Client:
                 last_error = exc
                 logger.warning("Request exception on attempt %s: %s", attempt, exc)
                 if attempt < max_retries:
-                    time.sleep(attempt * 5)
+                    delay = backoff_delays[min(attempt - 1, len(backoff_delays) - 1)]
+                    time.sleep(delay)
 
-        raise X402Error(f"All {max_retries} payment submission attempts failed: {last_error}")
+        raise X402Error(
+            f"All {max_retries} payment submission attempts failed for deploy {deploy_hash}. "
+            f"You can check the prediction status on TrappistAI."
+        )
 
 
 class X402Error(Exception):
