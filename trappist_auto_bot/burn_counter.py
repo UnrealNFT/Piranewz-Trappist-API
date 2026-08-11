@@ -23,11 +23,13 @@ class BurnCounter:
         poster: TelegramPoster,
         generator: TrappistImageGenerator | None = None,
         milestone_interval: int = 10,
+        logo_path: str = "",
     ) -> None:
         self.db = database
         self.poster = poster
         self.generator = generator
         self.milestone_interval = max(1, milestone_interval)
+        self.logo_path = logo_path
 
     def record_generation(self) -> tuple[int, float]:
         """Increment the burn counter and return the new totals."""
@@ -46,42 +48,49 @@ class BurnCounter:
         """Create a pro Piranewz burn-milestone prompt for TrappistAI."""
         return (
             "Square album cover artwork for Piranewz, a dark cyberpunk crypto "
-            "news brand. A giant metallic Casper CSPR coin in the center, "
+            "news brand. A giant metallic Casper $CSPR coin in the center, "
             "engulfed in realistic red, orange and blue flames, burning "
             "deflationary money. Bold text logo at the top reading "
             f"'C coin burn', subtitle 'Casper deflationary', big centered "
-            f"numbers '{int(burned)} CSPR burned', below that '{images} images generated' "
+            f"numbers '{int(burned)} $CSPR burned', below that '{images} images generated' "
             "and 'powered by trappist.land'. Piranewz piranha mascot silhouette "
             "in the corner, neon glow, cinematic lighting, ultra detailed, 8k, "
             "square format"
         )
 
     def build_caption(self, images: int, burned: float) -> tuple[str, str]:
-        """Return English and French captions for a burn milestone post."""
+        """Return clear English and French captions for a burn milestone post."""
         emoji = "🔥"
         caption_en = (
-            f"{emoji} **Piranewz Burn Update**\n\n"
-            f"**{images}** images generated\n"
-            f"**{burned} CSPR** burned in total\n\n"
-            f"Every 10 images = 1 CSPR gone forever. "
-            f"Casper network fees are burned, and every Piranewz illustration "
-            f"generated through [trappist.land](https://trappist.land) feeds the fire.\n\n"
-            f"Started from zero — onward! 🔱"
+            f"{emoji} **Piranewz Burn Milestone**\n\n"
+            f"**{images}** images generated so far\n"
+            f"**{burned} $CSPR** burned in total\n\n"
+            f"How it works: every time Piranewz creates an image on "
+            f"[trappist.land](https://trappist.land), the Casper network "
+            f"charges a ~0.1 $CSPR transaction fee — and Casper burns *all* "
+            f"its fees. So every 10 images = 1 $CSPR removed from circulation "
+            f"forever.\n\n"
+            f"Piranewz is feeding the fire. 🔱"
         )
         caption_fr = (
-            f"{emoji} **Mise à jour Burn Piranewz**\n\n"
-            f"**{images}** images générées\n"
-            f"**{burned} CSPR** brûlés au total\n\n"
-            f"Toutes les 10 images = 1 CSPR réduit en cendres. "
-            f"Les frais du réseau Casper sont brûlés, et chaque illustration "
-            f"Piranewz générée via [trappist.land](https://trappist.land) "
-            f"alimente le feu.\n\n"
-            f"On commence à zéro — et on continue ! 🔱"
+            f"{emoji} **Jalon Burn Piranewz**\n\n"
+            f"**{images}** images générées jusqu'à présent\n"
+            f"**{burned} $CSPR** brûlés au total\n\n"
+            f"Comment ça marche : chaque fois que Piranewz crée une image sur "
+            f"[trappist.land](https://trappist.land), le réseau Casper "
+            f"prélève environ 0.1 $CSPR de frais de transaction — et Casper "
+            f"brûle *tous* ses frais. Donc toutes les 10 images = 1 $CSPR "
+            f"retiré de la circulation pour toujours.\n\n"
+            f"Piranewz alimente le feu. 🔱"
         )
         tags = "#Casper #CSPR #Burn #Deflationary #Crypto #Piranewz #TrappistAI #Blockchain"
         return f"{caption_en}\n\n{tags}", f"{caption_fr}\n\n{tags}"
 
-    async def maybe_post_milestone(self, images: int, burned: float) -> dict[str, Any] | None:
+    async def maybe_post_milestone(
+        self,
+        images: int,
+        burned: float,
+    ) -> dict[str, Any] | None:
         """Post a burn milestone when images hits the configured interval."""
         if images <= 0 or images % self.milestone_interval != 0:
             return None
@@ -111,14 +120,14 @@ class BurnCounter:
                 image_url=image_url,
                 caption_en=caption_en,
                 caption_fr=caption_fr,
-                add_logo=False,
-                logo_path="",
+                add_logo=bool(self.logo_path),
+                logo_path=self.logo_path,
             )
         except Exception as exc:  # noqa: BLE001
             logger.warning("Failed to post burn milestone: %s", exc)
             return None
 
-        logger.info("Posted burn milestone: %s images, %s CSPR burned", images, burned)
+        logger.info("Posted burn milestone: %s images, %s $CSPR burned", images, burned)
         return {
             "type": "burn_milestone",
             "images_generated": images,

@@ -61,6 +61,7 @@ class GenerationScheduler:
             poster=poster,
             generator=generator if isinstance(generator, TrappistImageGenerator) else None,
             milestone_interval=config.burn_update_every_n_images,
+            logo_path=config.logo_path,
         )
         self.wallet = wallet_service or WalletService(
             casper_public_key=config.wallet_public_key,
