@@ -236,19 +236,20 @@ class GenerationScheduler:
         }
 
     async def _maybe_post_fear_greed(self, force: bool = False) -> dict[str, Any] | None:
-        """Fetch and post the Fear & Greed index image, at most once per hour.
+        """Fetch and post the Fear & Greed index image, at most once every 3 hours.
 
         Args:
-            force: If True, ignore the one-hour throttle. Useful on first boot.
+            force: If True, ignore the three-hour throttle. Useful on first boot.
         """
         now = datetime.utcnow()
+        cooldown_seconds = 3 * 3600
         if not force:
             last_raw = self.db.get_state("last_fear_greed_post")
             if last_raw:
                 try:
                     last = datetime.fromisoformat(last_raw)
-                    if (now - last).total_seconds() < 3600:
-                        logger.info("Fear & Greed already posted within the last hour")
+                    if (now - last).total_seconds() < cooldown_seconds:
+                        logger.info("Fear & Greed already posted within the last 3 hours")
                         return None
                 except ValueError:
                     pass
