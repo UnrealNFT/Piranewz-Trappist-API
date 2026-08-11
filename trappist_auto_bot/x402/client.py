@@ -171,19 +171,41 @@ class X402Client:
                 if response.status_code == 200:
                     return response.json()
 
+                if response.status_code == 200:
+                    return response.json()
+
+                # Insufficient payment means the CSPR price moved between the
+                # challenge and the submission. The signed deploy is now stale,
+                # so abort and let the caller request a fresh challenge.
+                if response.status_code == 400 and "insufficient payment" in response.text.lower():
+                    raise X402Error(
+                        f"Payment amount changed (HTTP {response.status_code}): {response.text}. "
+                        "Aborting to avoid a stale deploy."
+                    )
+
                 # Server-side timeouts can happen while generation is still running.
                 # Retry a few times before giving up.
-                if response.status_code in (400, 502, 503, 504) and attempt < max_retries:
-                    # HTTP 400 with "Deploy hash already used" usually means the
-                    # payment was accepted but the gateway timed out before returning
-                    # the image. Re-submitting the same signature may return the
-                    # completed image once generation finishes.
-                    is_already_used = response.status_code == 400 and "already used" in response.text.lower()
+                if response.status_code in (502, 503, 504) and attempt < max_retries:
                     delay = backoff_delays[min(attempt - 1, len(backoff_delays) - 1)]
                     logger.warning(
-                        "%s (HTTP %s), retrying in %ss... (attempt %s/%s)",
-                        "Deploy hash already used, waiting for image generation" if is_already_used else "Gateway timeout",
+                        "Gateway timeout (HTTP %s), retrying in %ss... (attempt %s/%s)",
                         response.status_code,
+                        delay,
+                        attempt,
+                        max_retries,
+                    )
+                    time.sleep(delay)
+                    continue
+
+                # HTTP 400 with "Deploy hash already used" usually means the
+                # payment was accepted but the gateway timed out before returning
+                # the image. Re-submitting the same signature may return the
+                # completed image once generation finishes.
+                if response.status_code == 400 and "already used" in response.text.lower() and attempt < max_retries:
+                    delay = backoff_delays[min(attempt - 1, len(backoff_delays) - 1)]
+                    logger.warning(
+                        "Deploy hash already used, waiting for image generation, "
+                        "retrying in %ss... (attempt %s/%s)",
                         delay,
                         attempt,
                         max_retries,
