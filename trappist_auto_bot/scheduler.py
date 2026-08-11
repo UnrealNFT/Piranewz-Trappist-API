@@ -497,4 +497,4 @@ class GenerationScheduler:
             logger.info("Seeded burn counter at %s images, %s $CSPR burned", images, burned)
 
         logger.info("Posting initial burn update: %s images, %s $CSPR burned", images, burned)
-        return await self.burn_counter.maybe_post_milestone(images, burned)
+        return await self.burn_counter.post_burn_update(images, burned)

@@ -102,29 +102,45 @@ class BurnCounter:
             logger.info("Burn milestone not at interval, skipping")
             return None
 
+        return await self._post_burn_update(images, burned)
+
+    async def post_burn_update(
+        self,
+        images: int,
+        burned: float,
+    ) -> dict[str, Any] | None:
+        """Post a burn update immediately, regardless of milestone interval."""
+        return await self._post_burn_update(images, burned)
+
+    async def _post_burn_update(
+        self,
+        images: int,
+        burned: float,
+    ) -> dict[str, Any] | None:
+        """Generate and post the burn update image + caption."""
         if self.generator is None:
-            logger.warning("No TrappistAI generator configured; skipping burn milestone image")
+            logger.warning("No TrappistAI generator configured; skipping burn update image")
             return None
 
         prompt = self.build_prompt(images, burned)
-        logger.info("Generating burn milestone image with TrappistAI")
+        logger.info("Generating burn update image with TrappistAI")
         try:
             generation_result = await self._generate_with_trappist(prompt)
             image_url = (
                 generation_result.get("api_response", {}).get("imageUrl")
                 or generation_result.get("api_response", {}).get("url", "")
             )
-            logger.info("Burn milestone image URL: %s", image_url)
+            logger.info("Burn update image URL: %s", image_url)
         except Exception as exc:  # noqa: BLE001
-            logger.warning("Failed to generate burn milestone image: %s", exc)
+            logger.warning("Failed to generate burn update image: %s", exc)
             return None
 
         if not image_url:
-            logger.warning("No image URL returned for burn milestone")
+            logger.warning("No image URL returned for burn update")
             return None
 
         caption_en, caption_fr = self.build_caption(images, burned)
-        logger.info("Posting burn milestone to Telegram (logo=%s)", bool(self.logo_path))
+        logger.info("Posting burn update to Telegram (logo=%s)", bool(self.logo_path))
         try:
             result = await self.poster.post_image(
                 image_url=image_url,
@@ -134,10 +150,10 @@ class BurnCounter:
                 logo_path=self.logo_path,
             )
         except Exception as exc:  # noqa: BLE001
-            logger.warning("Failed to post burn milestone: %s", exc)
+            logger.warning("Failed to post burn update: %s", exc)
             return None
 
-        logger.info("Posted burn milestone: %s images, %s $CSPR burned", images, burned)
+        logger.info("Posted burn update: %s images, %s $CSPR burned", images, burned)
         return {
             "type": "burn_milestone",
             "images_generated": images,
