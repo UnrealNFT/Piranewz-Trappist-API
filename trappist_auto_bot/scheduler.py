@@ -321,6 +321,14 @@ class GenerationScheduler:
                     except Exception as exc:  # noqa: BLE001
                         logger.warning("Fear & Greed post failed: %s", exc)
 
+                # Post an initial burn update on the very first cycle so the
+                # channel sees the milestone message right away.
+                if self._first_rss_cycle and getattr(self.config, "post_burn_updates", True):
+                    try:
+                        await self._maybe_post_initial_burn_update()
+                    except Exception as exc:  # noqa: BLE001
+                        logger.warning("Initial burn update failed: %s", exc)
+
                 self._first_rss_cycle = False
 
                 raw_articles = self.fetcher.get_articles(
@@ -468,3 +476,21 @@ class GenerationScheduler:
         if not with_image:
             await self._generate_and_post(article, with_image=False)
             logger.info("Posted text-only: %s", article.get("title", ""))
+
+    async def _maybe_post_initial_burn_update(self) -> dict[str, Any] | None:
+        """Post a burn update immediately on first boot.
+
+        Piranewz has already burned more than 5 CSPR historically, so we seed
+        the counter at 10 images / 1 CSPR. The next milestone will be at 20
+        images / 2 CSPR, and so on.
+        """
+        images, burned = self.burn_counter.get_stats()
+        if images == 0:
+            # Seed the counter so the first burn post shows 1 CSPR burned.
+            for _ in range(10):
+                self.db.increment_burn_counter()
+            images, burned = self.burn_counter.get_stats()
+            logger.info("Seeded burn counter at 10 images, 1 CSPR burned")
+
+        logger.info("Posting initial burn update: %s images, %s CSPR burned", images, burned)
+        return await self.burn_counter.maybe_post_milestone(images, burned)
