@@ -63,6 +63,11 @@ def main() -> int:
         action="store_true",
         help="Run a single generation cycle and exit",
     )
+    parser.add_argument(
+        "--reset-burn-counter",
+        action="store_true",
+        help="Reset the CSPR burn counter to zero and continue",
+    )
     args = parser.parse_args()
 
     try:
@@ -109,6 +114,9 @@ def main() -> int:
 
     fetcher = RssFetcher(feed_urls=config.rss_sources.split(","))
     database = Database(path=config.database_path)
+
+    if args.reset_burn_counter:
+        database.reset_burn_counter()
 
     from trappist_auto_bot.wallet import WalletService
 

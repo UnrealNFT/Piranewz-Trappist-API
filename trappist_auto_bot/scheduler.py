@@ -11,6 +11,7 @@ from trappist_auto_bot.config import Config
 from trappist_auto_bot.crypto_prices import PriceProviderError, fetch_prices
 from trappist_auto_bot.fear_greed import build_caption as build_fear_greed_caption
 from trappist_auto_bot.fear_greed import create_gauge_image, fetch_index
+from trappist_auto_bot.burn_counter import BurnCounter
 from trappist_auto_bot.formatting import (
     build_caption,
     build_prompt_from_article,
@@ -55,6 +56,12 @@ class GenerationScheduler:
         self.poster = poster
         self.fetcher = fetcher
         self.db = database
+        self.burn_counter = BurnCounter(
+            database=database,
+            poster=poster,
+            generator=generator if isinstance(generator, TrappistImageGenerator) else None,
+            milestone_interval=config.burn_update_every_n_images,
+        )
         self.wallet = wallet_service or WalletService(
             casper_public_key=config.wallet_public_key,
             solana_public_key=config.solana_public_key,
@@ -207,6 +214,11 @@ class GenerationScheduler:
             pay_to=pay_to,
             telegram_message_id=telegram_result.get("message_id"),
         )
+
+        # Track CSPR burned for paid TrappistAI (x402) generations.
+        if amount_motes > 0 and getattr(self.config, "post_burn_updates", True):
+            images, burned = self.burn_counter.record_generation()
+            await self.burn_counter.maybe_post_milestone(images, burned)
 
         # Mark RSS link as posted only after a successful Telegram post.
         if article.get("link"):

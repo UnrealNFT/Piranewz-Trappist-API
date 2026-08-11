@@ -43,16 +43,10 @@ class PollinationsImageGenerator:
         encoded_prompt = urllib.parse.quote(prompt)
         image_url = f"{self.base_url}/{encoded_prompt}?{urllib.parse.urlencode(params)}"
 
-        # Pollinations returns the image directly; a HEAD request is enough to
-        # confirm the URL is reachable without downloading the full payload.
-        response = requests.head(image_url, timeout=timeout, allow_redirects=True)
-        logger.info("Pollinations response HTTP %s", response.status_code)
-
-        if response.status_code not in (200, 301, 302):
-            raise PollinationsError(
-                f"Pollinations returned HTTP {response.status_code}: {image_url}"
-            )
-
+        # Pollinations streams the image on GET. A HEAD request can create a
+        # cached empty response, so we skip it and let the consumer fetch the
+        # real payload.
+        logger.info("Pollinations URL ready: %s", image_url)
         return {"imageUrl": image_url}
 
 

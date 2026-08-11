@@ -85,6 +85,8 @@ Important variables:
 - `DAILY_BUDGET_MOTES` — daily CSPR spending budget
 - `MAX_PAYMENT_MOTES` — per-image spending cap
 - `PRICE_POST_INTERVAL_HOURS=2` — price update interval
+- `POST_BURN_UPDATES=true` — post a burn milestone image every N TrappistAI generations
+- `BURN_UPDATE_EVERY_N_IMAGES=10` — milestone interval (default: 10 ≈ 1 CSPR burned)
 
 ## ▶️ Run the bot
 
@@ -98,6 +100,12 @@ Single cycle (test):
 
 ```bash
 python main.py --once
+```
+
+Reset the CSPR burn counter to zero:
+
+```bash
+python main.py --reset-burn-counter
 ```
 
 ## 🚀 Deploy on Render

@@ -63,8 +63,14 @@ os.environ["FALLBACK_PROMPTS"] = (
     "a cyberpunk bull holding a glowing bitcoin coin"
 )
 
-# -----------------------------------------------------------------------------
-# Image overlay / storage
+# -----------------------------------------------------------------------------# Burn counter (Casper fees are burned)
+# ------------------------------------------------------------------------------
+# Set to "false" to disable burn milestone posts.
+os.environ["POST_BURN_UPDATES"] = "true"
+# Post a burn milestone image every N TrappistAI generations (default: 10).
+os.environ["BURN_UPDATE_EVERY_N_IMAGES"] = "10"
+
+# ------------------------------------------------------------------------------# Image overlay / storage
 # -----------------------------------------------------------------------------
 os.environ["ADD_LOGO"] = "false"
 os.environ["LOGO_PATH"] = ""

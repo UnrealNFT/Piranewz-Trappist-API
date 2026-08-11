@@ -64,6 +64,10 @@ class Config:
     # Fear & Greed index posting
     post_fear_greed: bool = True
 
+    # Burn counter / milestone posts
+    post_burn_updates: bool = True
+    burn_update_every_n_images: int = 10  # post a burn milestone every N images
+
     # Crypto price update schedule (hours between posts).
     price_post_interval_hours: int = 2
 
@@ -160,6 +164,11 @@ class Config:
             logo_path=os.environ.get("LOGO_PATH", ""),
             post_fear_greed=os.environ.get("POST_FEAR_GREED", "true").lower()
             in ("1", "true", "yes"),
+            post_burn_updates=os.environ.get("POST_BURN_UPDATES", "true").lower()
+            in ("1", "true", "yes"),
+            burn_update_every_n_images=int(
+                os.environ.get("BURN_UPDATE_EVERY_N_IMAGES", "10")
+            ),
             price_post_interval_hours=int(
                 os.environ.get("PRICE_POST_INTERVAL_HOURS", "2")
             ),

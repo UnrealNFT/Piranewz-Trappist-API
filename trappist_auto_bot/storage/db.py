@@ -164,8 +164,51 @@ class Database:
             today = conn.execute(
                 "SELECT COUNT(*) FROM generations WHERE created_at > datetime('now', '-1 day')"
             ).fetchone()
+            images = self.get_burn_counter()
+            burned = round(images * 0.1, 1)
             return {
                 "total_generations": total[0],
                 "total_spent_motes": total[1],
                 "generations_last_24h": today[0],
+                "burn_counter_images": images,
+                "burn_counter_cspr": burned,
             }
+
+    def get_burn_counter(self) -> int:
+        """Return the number of TrappistAI generations counted for CSPR burn."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT value FROM scheduler_state WHERE key = 'burn_counter_images'"
+            ).fetchone()
+            return int(row[0]) if row and row[0] is not None else 0
+
+    def increment_burn_counter(self) -> int:
+        """Increment and return the TrappistAI generation counter."""
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO scheduler_state (key, value)
+                VALUES ('burn_counter_images', '1')
+                ON CONFLICT(key) DO UPDATE SET
+                    value = CAST(value AS INTEGER) + 1,
+                    updated_at = CURRENT_TIMESTAMP
+                """,
+            )
+            row = conn.execute(
+                "SELECT value FROM scheduler_state WHERE key = 'burn_counter_images'"
+            ).fetchone()
+            return int(row[0]) if row else 0
+
+    def reset_burn_counter(self) -> None:
+        """Reset the burn counter to zero."""
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO scheduler_state (key, value)
+                VALUES ('burn_counter_images', '0')
+                ON CONFLICT(key) DO UPDATE SET
+                    value = '0',
+                    updated_at = CURRENT_TIMESTAMP
+                """,
+            )
+            logger.info("Burn counter reset to zero")
