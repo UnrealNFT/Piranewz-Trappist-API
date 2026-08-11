@@ -485,12 +485,13 @@ class GenerationScheduler:
         images / 2 CSPR, and so on.
         """
         images, burned = self.burn_counter.get_stats()
-        if images == 0:
-            # Seed the counter so the first burn post shows 1 CSPR burned.
-            for _ in range(10):
+        if images < 10:
+            # Seed the counter so the first burn post shows at least 1 CSPR burned.
+            needed = 10 - images
+            for _ in range(needed):
                 self.db.increment_burn_counter()
             images, burned = self.burn_counter.get_stats()
-            logger.info("Seeded burn counter at 10 images, 1 CSPR burned")
+            logger.info("Seeded burn counter at %s images, %s CSPR burned", images, burned)
 
         logger.info("Posting initial burn update: %s images, %s CSPR burned", images, burned)
         return await self.burn_counter.maybe_post_milestone(images, burned)
