@@ -92,7 +92,14 @@ class BurnCounter:
         burned: float,
     ) -> dict[str, Any] | None:
         """Post a burn milestone when images hits the configured interval."""
+        logger.info(
+            "Checking burn milestone: images=%s, interval=%s, modulo=%s",
+            images,
+            self.milestone_interval,
+            images % self.milestone_interval if images > 0 else "N/A",
+        )
         if images <= 0 or images % self.milestone_interval != 0:
+            logger.info("Burn milestone not at interval, skipping")
             return None
 
         if self.generator is None:
@@ -100,12 +107,14 @@ class BurnCounter:
             return None
 
         prompt = self.build_prompt(images, burned)
+        logger.info("Generating burn milestone image with TrappistAI")
         try:
             generation_result = await self._generate_with_trappist(prompt)
             image_url = (
                 generation_result.get("api_response", {}).get("imageUrl")
                 or generation_result.get("api_response", {}).get("url", "")
             )
+            logger.info("Burn milestone image URL: %s", image_url)
         except Exception as exc:  # noqa: BLE001
             logger.warning("Failed to generate burn milestone image: %s", exc)
             return None
@@ -115,6 +124,7 @@ class BurnCounter:
             return None
 
         caption_en, caption_fr = self.build_caption(images, burned)
+        logger.info("Posting burn milestone to Telegram (logo=%s)", bool(self.logo_path))
         try:
             result = await self.poster.post_image(
                 image_url=image_url,
