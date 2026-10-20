@@ -40,7 +40,7 @@ services:
       - key: SIGNER_TIMEOUT
         value: "60"
       - key: MAX_PAYMENT_MOTES
-        value: "20000000000"
+        value: "1000000000000"
       - key: DAILY_BUDGET_MOTES
         value: "2000000000000"
       - key: MIN_BALANCE_MOTES

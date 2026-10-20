@@ -44,7 +44,7 @@ os.environ["TRAPIST_API_URL"] = "https://trappist.land"
 os.environ["SIGNER_BACKEND"] = "local"
 os.environ["SIGNER_COMMAND"] = ""
 os.environ["SIGNER_TIMEOUT"] = "60"
-os.environ["MAX_PAYMENT_MOTES"] = "20000000000"      # 20 CSPR max per image
+os.environ["MAX_PAYMENT_MOTES"] = "1000000000000"    # 1000 CSPR max per payment
 os.environ["DAILY_BUDGET_MOTES"] = "100000000000"     # 100 CSPR per day
 
 # -----------------------------------------------------------------------------

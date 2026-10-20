@@ -15,6 +15,8 @@ from trappist_auto_bot.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+IMAGE_ENDPOINT = "/api/v1/agent/generate/image"
+
 
 @dataclass(frozen=True)
 class PaymentDetails:
@@ -71,12 +73,22 @@ class X402Client:
         payload = {"deployJson": raw_deploy, "wallet": self.wallet}
         return base64.b64encode(json.dumps(payload).encode()).decode()
 
-    def request_challenge(self, prompt: str, timeout: int = 30) -> dict[str, Any]:
-        """Request generation without payment and parse the 402 challenge."""
-        url = f"{self.api_url}/api/v1/agent/generate/image"
-        body = {"wallet": self.wallet, "prompt": prompt}
+    def _request_body(self, prompt: str, body: dict[str, Any] | None) -> dict[str, Any]:
+        return {**(body if body is not None else {"prompt": prompt}), "wallet": self.wallet}
 
-        logger.info("Requesting challenge for prompt: %s", prompt[:60])
+    def request_challenge(
+        self,
+        prompt: str = "",
+        timeout: int = 30,
+        *,
+        endpoint: str = IMAGE_ENDPOINT,
+        body: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Request generation without payment and parse the 402 challenge."""
+        url = f"{self.api_url}{endpoint}"
+        body = self._request_body(prompt, body)
+
+        logger.info("Requesting challenge on %s: %s", endpoint, str(body)[:80])
         response = requests.post(url, json=body, timeout=timeout)
         logger.info("Challenge response HTTP %s", response.status_code)
 
@@ -144,10 +156,13 @@ class X402Client:
         deploy_json: dict[str, Any],
         timeout: int = 600,
         max_retries: int = 5,
+        *,
+        endpoint: str = IMAGE_ENDPOINT,
+        body: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Submit the signed deploy and return the generated image response."""
-        url = f"{self.api_url}/api/v1/agent/generate/image"
-        body = {"wallet": self.wallet, "prompt": prompt}
+        """Submit the signed deploy and return the generation response."""
+        url = f"{self.api_url}{endpoint}"
+        body = self._request_body(prompt, body)
         payment_signature = self._encode_signature(deploy_json)
 
         deploy_hash = deploy_json.get("deploy", {}).get("hash", "N/A")
@@ -227,6 +242,30 @@ class X402Client:
             f"All {max_retries} payment submission attempts failed for deploy {deploy_hash}. "
             f"You can check the prediction status on TrappistAI."
         )
+
+    def wait_for_job(self, job_id: str, timeout: int = 900, interval: int = 10) -> dict[str, Any]:
+        """Poll a long-running job (music / video / 3D) until it completes."""
+        url = f"{self.api_url}/api/jobs/{job_id}"
+        deadline = time.monotonic() + timeout
+        while True:
+            try:
+                response = requests.get(url, timeout=30)
+                response.raise_for_status()
+                job = response.json()
+            except requests.RequestException as exc:
+                # Payment is already settled, so keep polling through transient errors.
+                logger.warning("Job %s poll failed: %s", job_id, exc)
+                job = {}
+
+            status = job.get("status")
+            if status == "completed":
+                return job
+            if status == "failed":
+                raise X402Error(f"Job {job_id} failed: {job.get('error')}")
+            if time.monotonic() >= deadline:
+                raise X402Error(f"Job {job_id} still '{status}' after {timeout}s")
+            logger.info("Job %s status: %s", job_id, status)
+            time.sleep(interval)
 
 
 class X402Error(Exception):

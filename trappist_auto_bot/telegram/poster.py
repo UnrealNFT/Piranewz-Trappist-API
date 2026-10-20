@@ -106,6 +106,35 @@ class TelegramPoster:
 
         return {"message_id": message_en.message_id, "caption": caption_en}
 
+    async def post_media(
+        self,
+        kind: str,
+        data: bytes,
+        filename: str,
+        caption_en: str,
+        caption_fr: str = "",
+    ) -> dict[str, Any]:
+        """Post audio, video or a document (e.g. GLB 3D model) to EN + optional FR."""
+        if kind not in ("audio", "video", "document"):
+            raise ValueError(f"Unsupported Telegram media kind: {kind}")
+        send = getattr(self.bot, f"send_{kind}")
+        message_id = None
+        for chat_id, caption in ((self.chat_id, caption_en), (self.chat_id_fr, caption_fr)):
+            if not chat_id or not caption:
+                continue
+            logger.info("Posting %s (%s bytes) to Telegram chat %s", kind, len(data), chat_id)
+            file = io.BytesIO(data)
+            file.name = filename
+            message = await send(
+                chat_id=chat_id,
+                caption=caption[:1024],
+                parse_mode="Markdown",
+                disable_notification=True,
+                **{kind: file},
+            )
+            message_id = message_id or message.message_id
+        return {"message_id": message_id, "caption": caption_en}
+
 
 class NoOpPoster:
     """Poster that does nothing. Useful for local image generation without Telegram."""
@@ -139,4 +168,15 @@ class NoOpPoster:
 
     async def post_text(self, caption_en: str, caption_fr: str = "") -> dict[str, Any]:
         logger.info("Telegram disabled. Text caption: %s", caption_en[:80])
+        return {"message_id": None, "caption": caption_en}
+
+    async def post_media(
+        self,
+        kind: str,
+        data: bytes,
+        filename: str,
+        caption_en: str,
+        caption_fr: str = "",
+    ) -> dict[str, Any]:
+        logger.info("Telegram disabled. %s %s: %s bytes", kind, filename, len(data))
         return {"message_id": None, "caption": caption_en}
