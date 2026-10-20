@@ -20,6 +20,8 @@ from trappist_auto_bot.formatting import (
 from trappist_auto_bot.image.generator import TrappistImageGenerator
 from trappist_auto_bot.image.pollinations_generator import PollinationsError, PollinationsImageGenerator
 from trappist_auto_bot.image.wavespeed_generator import WaveSpeedError, WaveSpeedImageGenerator
+from trappist_auto_bot.media import TrappistMediaGenerator
+from trappist_auto_bot.media.suite import run_media_suite
 from trappist_auto_bot.price_poster import post_price_update
 from trappist_auto_bot.translation import generate_price_hashtags
 from trappist_auto_bot.rss.fetcher import RssFetcher
@@ -305,8 +307,20 @@ class GenerationScheduler:
             self._rss_scheduler(interval),
             self._article_processor(delay),
             self._price_scheduler(),
+            self._media_suite_on_start(),
             return_exceptions=True,
         )
+
+    async def _media_suite_on_start(self) -> None:
+        """Run the paid media suite once; each step is persisted so restarts never re-pay."""
+        if not self.config.media_suite_on_start:
+            return
+        if not isinstance(self.generator, TrappistImageGenerator):
+            logger.warning("MEDIA_SUITE_ON_START needs IMAGE_BACKEND=trappist, skipping")
+            return
+        media = TrappistMediaGenerator(self.generator, max_payment_motes=self.config.max_payment_motes)
+        results = await run_media_suite(media, self.poster, db=self.db)
+        logger.info("Media suite finished: %s", results)
 
     async def _rss_scheduler(self, interval_minutes: int) -> None:
         """Fetch RSS feeds periodically and add new articles to the queue."""

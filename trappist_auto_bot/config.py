@@ -64,6 +64,9 @@ class Config:
     # Fear & Greed index posting
     post_fear_greed: bool = True
 
+    # Run the paid image/speech/music/video/3D suite once at startup.
+    media_suite_on_start: bool = False
+
     # Burn counter / milestone posts
     post_burn_updates: bool = True
     burn_update_every_n_images: int = 10  # post a burn milestone every N images
@@ -163,6 +166,8 @@ class Config:
             in ("1", "true", "yes"),
             logo_path=os.environ.get("LOGO_PATH", ""),
             post_fear_greed=os.environ.get("POST_FEAR_GREED", "true").lower()
+            in ("1", "true", "yes"),
+            media_suite_on_start=os.environ.get("MEDIA_SUITE_ON_START", "false").lower()
             in ("1", "true", "yes"),
             post_burn_updates=os.environ.get("POST_BURN_UPDATES", "true").lower()
             in ("1", "true", "yes"),
