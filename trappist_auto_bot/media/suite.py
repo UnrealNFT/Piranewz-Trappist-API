@@ -1,7 +1,10 @@
 """Run every paid TrappistAI media type on one article and post it to Telegram."""
 
 import asyncio
+import io
+import tempfile
 import urllib.parse
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -97,10 +100,33 @@ async def _post_3d(poster: Any, data: bytes, filename: str, caption: str) -> Non
     if data:
         try:
             await poster.post_media("document", data, filename, caption_en=caption)
-            return
         except Exception as exc:  # noqa: BLE001
             logger.warning("GLB upload refused by Telegram, posting viewer link only: %s", exc)
+            await poster.post_text(caption_en=caption)
+        try:
+            obj_zip = await asyncio.get_running_loop().run_in_executor(None, glb_to_obj_zip, data)
+            await poster.post_media(
+                "document", obj_zip, "article_model_obj.zip",
+                caption_en="🧊 OBJ + texture — unzip, then Blender: File > Import > Wavefront (.obj)",
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("OBJ conversion/upload failed: %s", exc)
+        return
     await poster.post_text(caption_en=caption)
+
+
+def glb_to_obj_zip(glb: bytes) -> bytes:
+    """Convert a GLB to a zip of model.obj + material.mtl + texture images."""
+    import trimesh
+
+    scene = trimesh.load(io.BytesIO(glb), file_type="glb", force="scene")
+    with tempfile.TemporaryDirectory() as tmp:
+        scene.export(str(Path(tmp) / "model.obj"), file_type="obj")
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+            for path in sorted(Path(tmp).iterdir()):
+                archive.write(path, path.name)
+    return buffer.getvalue()
 
 
 async def run_media_suite(
@@ -112,15 +138,18 @@ async def run_media_suite(
     steps: list[str] | None = None,
     voice: str = "en-male",
     out_dir: Path | None = None,
+    run_id: str = "1",
 ) -> dict[str, str]:
-    """Generate and post each media step once; returns {step: url or error}."""
+    """Generate and post each media step once per run_id; returns {step: url or error}."""
     prompts = build_media_prompts(article.title, article.summary)
     loop = asyncio.get_running_loop()
     results: dict[str, str] = {}
     image_url = ""
+    # Run "1" keeps the original key format so already-paid steps stay recorded.
+    key_prefix = "media_suite" if run_id == "1" else f"media_suite:run{run_id}"
 
     for step in steps or STEPS:
-        state_key = f"media_suite:{article.title}:{step}"
+        state_key = f"{key_prefix}:{article.title}:{step}"
         previous = db.get_state(state_key) if db else None
         if previous:
             # Recorded before paying, so a restart never pays the same step twice.

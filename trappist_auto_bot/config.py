@@ -66,6 +66,9 @@ class Config:
 
     # Run the paid image/speech/music/video/3D suite once at startup.
     media_suite_on_start: bool = False
+    # Bump the run id to start a new paid test; steps is a comma list (empty = all).
+    media_suite_run: str = "1"
+    media_suite_steps: str = ""
 
     # Burn counter / milestone posts
     post_burn_updates: bool = True
@@ -169,6 +172,8 @@ class Config:
             in ("1", "true", "yes"),
             media_suite_on_start=os.environ.get("MEDIA_SUITE_ON_START", "false").lower()
             in ("1", "true", "yes"),
+            media_suite_run=os.environ.get("MEDIA_SUITE_RUN", "1").strip() or "1",
+            media_suite_steps=os.environ.get("MEDIA_SUITE_STEPS", ""),
             post_burn_updates=os.environ.get("POST_BURN_UPDATES", "true").lower()
             in ("1", "true", "yes"),
             burn_update_every_n_images=int(

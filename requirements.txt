@@ -4,5 +4,6 @@ python-telegram-bot>=21.0
 requests>=2.31.0
 Pillow>=10.0.0
 deep-translator>=1.11.4
+trimesh>=4.0.0
 # Note: pycspr is optional and requires Rust to build. The production signer
 # uses the Node.js helper in scripts/sign_casper_transfer_v2.js.

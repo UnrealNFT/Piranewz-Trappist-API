@@ -71,6 +71,10 @@ services:
         value: "true"
       - key: MEDIA_SUITE_ON_START
         value: "true"
+      - key: MEDIA_SUITE_RUN
+        value: "2"
+      - key: MEDIA_SUITE_STEPS
+        value: "3d"
       - key: PRICE_POST_INTERVAL_HOURS
         value: "2"
       - key: CMC_API_KEY
