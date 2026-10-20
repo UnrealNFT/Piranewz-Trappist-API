@@ -12,7 +12,7 @@ from trappist_auto_bot.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
+DEFAULT_GROQ_MODEL = "openai/gpt-oss-20b"
 
 
 def summarize_article(
@@ -34,7 +34,14 @@ def summarize_article(
                 return _translate_result(data)
             except requests.HTTPError as exc:
                 status = exc.response.status_code if exc.response is not None else 0
-                logger.warning("Groq attempt %s/%s failed: HTTP %s", attempt + 1, max_retries, status)
+                response_text = exc.response.text[:500] if exc.response is not None else ""
+                logger.warning(
+                    "Groq attempt %s/%s failed: HTTP %s: %s",
+                    attempt + 1,
+                    max_retries,
+                    status,
+                    response_text,
+                )
                 # Back off longer on rate limits.
                 if attempt < max_retries - 1:
                     time.sleep(5 if status == 429 else 2)
@@ -139,7 +146,7 @@ def _summarize_with_groq(
     if data is None:
         raise ValueError("No valid JSON in Groq response")
 
-    required = ["title_en", "description_en", "summary", "hashtags"]
+    required = ["title_en", "summary", "hashtags"]
     if not all(key in data for key in required):
         raise ValueError("Missing fields in Groq response")
 
@@ -169,7 +176,7 @@ def _summarize_with_ollama(
     if data is None:
         raise ValueError("No valid JSON in Ollama response")
 
-    required = ["title_en", "description_en", "summary", "hashtags"]
+    required = ["title_en", "summary", "hashtags"]
     if not all(key in data for key in required):
         raise ValueError("Missing fields in Ollama response")
 
@@ -178,17 +185,35 @@ def _summarize_with_ollama(
 
 def _translate_result(data: dict[str, Any]) -> dict[str, Any]:
     """Translate English fields to French and normalize output."""
-    translator = GoogleTranslator(source="en", target="fr")
     hashtags = _normalize_hashtags(data["hashtags"])
-    if len(hashtags) < 3:
-        raise ValueError("AI must provide at least 3 relevant hashtags")
+    if not hashtags:
+        raise ValueError("AI must provide at least one relevant hashtag")
+
+    try:
+        translator = GoogleTranslator(source="en", target="fr")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not initialize translator; keeping English text: %s", exc)
+        translator = None
+
+    def translate_or_keep_english(text: str) -> str:
+        if translator is None:
+            return text
+        try:
+            return translator.translate(text) or text
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Could not translate generated text; keeping English: %s", exc)
+            return text
+
+    title = data["title_en"]
+    summary = data["summary"]
+    description = data.get("description_en", "")
     return {
-        "title_en": data["title_en"],
-        "title_fr": translator.translate(data["title_en"]),
-        "description_en": data["description_en"],
-        "description_fr": translator.translate(data["description_en"]),
-        "summary_en": data["summary"],
-        "summary_fr": translator.translate(data["summary"]),
+        "title_en": title,
+        "title_fr": translate_or_keep_english(title),
+        "description_en": description,
+        "description_fr": translate_or_keep_english(description),
+        "summary_en": summary,
+        "summary_fr": translate_or_keep_english(summary),
         "hashtags": hashtags,
     }
 

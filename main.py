@@ -130,7 +130,6 @@ def main() -> int:
         return summarize_article(
             article,
             groq_api_key=config.groq_api_key,
-            groq_model="llama-3.1-8b-instant",
         )
 
     scheduler = GenerationScheduler(
