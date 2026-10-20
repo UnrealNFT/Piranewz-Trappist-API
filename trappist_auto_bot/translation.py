@@ -63,9 +63,9 @@ def summarize_article(
             "title_fr": translator.translate(article["title"]),
             "description_en": article.get("summary", "")[:200],
             "description_fr": translator.translate(article.get("summary", "")[:200]),
-            "summary_en": article.get("summary", "")[:150],
-            "summary_fr": translator.translate(article.get("summary", "")[:150]),
-            "hashtags": ["#Crypto", "#News"],
+            "summary_en": "",
+            "summary_fr": "",
+            "hashtags": [],
         }
     except Exception as exc:  # noqa: BLE001
         logger.error("Google Translate fallback failed: %s", exc)
@@ -74,9 +74,9 @@ def summarize_article(
             "title_fr": article["title"],
             "description_en": article.get("summary", "")[:200],
             "description_fr": article.get("summary", "")[:200],
-            "summary_en": article.get("summary", "")[:150],
-            "summary_fr": article.get("summary", "")[:150],
-            "hashtags": ["#Crypto", "#Blockchain"],
+            "summary_en": "",
+            "summary_fr": "",
+            "hashtags": [],
         }
 
 
@@ -92,7 +92,7 @@ STRICT RULES:
 1. Write a catchy English title (clear, concise, engaging)
 2. Write a SHORT and UNIQUE summary (2 sentences max, different from description)
 3. Add a COMPLEMENTARY description (1 sentence that ADDS info, no repetition)
-4. Generate 3-4 relevant crypto hashtags
+4. Generate 3-5 specific, high-discovery hashtags from THIS article's exact topic, coin, company, event, or regulation. Prefer precise terms readers would search for. Do not use generic tags like #Crypto or #Blockchain unless directly relevant. Make every hashtag unique.
 5. Write as ORIGINAL content (never mention source name like "CoinTelegraph reports...")
 
 JSON RESPONSE FORMAT (valid JSON only):
@@ -139,12 +139,9 @@ def _summarize_with_groq(
     if data is None:
         raise ValueError("No valid JSON in Groq response")
 
-    required = ["title_en", "description_en", "summary"]
+    required = ["title_en", "description_en", "summary", "hashtags"]
     if not all(key in data for key in required):
         raise ValueError("Missing fields in Groq response")
-
-    if "hashtags" not in data or not data["hashtags"]:
-        data["hashtags"] = ["#Crypto", "#Blockchain", "#Bitcoin"]
 
     return data
 
@@ -172,12 +169,9 @@ def _summarize_with_ollama(
     if data is None:
         raise ValueError("No valid JSON in Ollama response")
 
-    required = ["title_en", "description_en", "summary"]
+    required = ["title_en", "description_en", "summary", "hashtags"]
     if not all(key in data for key in required):
         raise ValueError("Missing fields in Ollama response")
-
-    if "hashtags" not in data or not data["hashtags"]:
-        data["hashtags"] = ["#Crypto", "#Blockchain", "#Bitcoin"]
 
     return data
 
@@ -185,6 +179,9 @@ def _summarize_with_ollama(
 def _translate_result(data: dict[str, Any]) -> dict[str, Any]:
     """Translate English fields to French and normalize output."""
     translator = GoogleTranslator(source="en", target="fr")
+    hashtags = _normalize_hashtags(data["hashtags"])
+    if len(hashtags) < 3:
+        raise ValueError("AI must provide at least 3 relevant hashtags")
     return {
         "title_en": data["title_en"],
         "title_fr": translator.translate(data["title_en"]),
@@ -192,8 +189,28 @@ def _translate_result(data: dict[str, Any]) -> dict[str, Any]:
         "description_fr": translator.translate(data["description_en"]),
         "summary_en": data["summary"],
         "summary_fr": translator.translate(data["summary"]),
-        "hashtags": data["hashtags"],
+        "hashtags": hashtags,
     }
+
+
+def _normalize_hashtags(value: Any) -> list[str]:
+    """Normalize AI-generated hashtag values and remove duplicates."""
+    if not isinstance(value, list):
+        return []
+
+    hashtags = []
+    seen = set()
+    for item in value:
+        if not isinstance(item, str):
+            continue
+        tag = re.sub(r"[^\w]", "", item.lstrip("#"), flags=re.UNICODE)
+        if not tag or tag.casefold() in seen:
+            continue
+        hashtags.append(f"#{tag}")
+        seen.add(tag.casefold())
+        if len(hashtags) == 5:
+            break
+    return hashtags
 
 
 def _extract_json(text: str) -> dict[str, Any] | None:

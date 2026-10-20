@@ -6,7 +6,6 @@ from typing import Any
 
 # Matches the tele10001 style.
 CRYPTO_EMOJIS = ["🚀", "📈", "💎", "⚡", "🌟", "🔥", "🌙", "💰"]
-DEFAULT_HASHTAGS = ["#Crypto", "#Blockchain", "#Bitcoin"]
 
 
 def build_caption(article: dict[str, Any], translation: dict[str, Any], lang: str = "fr") -> str:
@@ -18,30 +17,23 @@ def build_caption(article: dict[str, Any], translation: dict[str, Any], lang: st
     if lang == "fr":
         title = translation.get("title_fr") or article.get("title", "")
         summary = translation.get("summary_fr") or translation.get("summary_en", "")
-        description = translation.get("description_fr") or translation.get("description_en", "")
     else:
         title = translation.get("title_en") or article.get("title", "")
         summary = translation.get("summary_en") or translation.get("summary", "")
-        description = translation.get("description_en") or translation.get("description", "")
 
-    hashtags = translation.get("hashtags", DEFAULT_HASHTAGS)
+    hashtags = translation.get("hashtags") or []
 
-    # Truncate description to leave room for hashtags and source link.
-    if len(description) > 250:
-        description = description[:247] + "..."
+    body = [summary] if summary else []
 
     source_name = _clean_source_name(article.get("source", "Source"))
     article_url = article.get("link", "")
     source_link = f"[📰 {source_name}]({article_url})" if article_url else f"📰 {source_name}"
 
-    caption = (
-        f"{emoji} **{title}**\n\n"
-        f"{summary}\n\n"
-        f"{description}\n\n"
-        f"{' '.join(hashtags)}\n\n"
-        f"{source_link}"
-    )
-    return caption
+    sections = [f"{emoji} **{title}**", *body]
+    if hashtags:
+        sections.append(" ".join(hashtags))
+    sections.append(source_link)
+    return "\n\n".join(sections)
 
 
 def _clean_source_name(name: str) -> str:
