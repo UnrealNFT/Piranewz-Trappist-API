@@ -1,6 +1,7 @@
 """Run every paid TrappistAI media type on one article and post it to Telegram."""
 
 import asyncio
+import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -14,6 +15,7 @@ from trappist_auto_bot.utils.logger import get_logger
 logger = get_logger(__name__)
 
 STEPS = ["image", "speech", "music", "video", "3d"]
+VIEWER_3D_URL = "https://trappist.land/viewer3d.html?url="
 LABELS = {
     "image": "🖼 Image FLUX Schnell",
     "speech": "🎙 Speech",
@@ -52,6 +54,11 @@ def _download(url: str) -> bytes:
     return response.content
 
 
+def viewer_3d_url(glb_url: str) -> str:
+    """Link to the trappist.land 3D viewer, as used by the TrappistAI Telegram bot."""
+    return VIEWER_3D_URL + urllib.parse.quote(glb_url, safe="")
+
+
 def _generate_step(
     media: TrappistMediaGenerator,
     step: str,
@@ -76,7 +83,24 @@ def _generate_step(
     black_bg = media.image(prompts["3d_image"])
     logger.info("3D source image (black background): %s", black_bg.url)
     result = media.model_3d(black_bg.url, with_texture=True)
-    return result.url, _download(result.url), "article_model.glb", "document"
+    try:
+        data = _download(result.url)
+    except requests.RequestException as exc:
+        # Already paid: still publish the viewer link instead of losing the model.
+        logger.warning("Could not download GLB, posting viewer link only: %s", exc)
+        data = b""
+    return result.url, data, "article_model.glb", "document"
+
+
+async def _post_3d(poster: Any, data: bytes, filename: str, caption: str) -> None:
+    """Send the GLB with viewer links; fall back to a links-only message like the TrappistAI bot."""
+    if data:
+        try:
+            await poster.post_media("document", data, filename, caption_en=caption)
+            return
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("GLB upload refused by Telegram, posting viewer link only: %s", exc)
+    await poster.post_text(caption_en=caption)
 
 
 async def run_media_suite(
@@ -115,15 +139,22 @@ async def run_media_suite(
             )
             if step == "image":
                 image_url = url
-            if out_dir:
+            if out_dir and data:
                 out_dir.mkdir(parents=True, exist_ok=True)
                 (out_dir / filename).write_bytes(data)
 
+            links = ""
+            if step == "3d":
+                links = f"🔗 [View in 3D]({viewer_3d_url(url)})\n💾 [Direct download]({url})"
             caption = "\n\n".join(
-                part for part in (LABELS[step], f"**{article.title}**", article.hashtags, article.source) if part
+                part
+                for part in (LABELS[step], f"**{article.title}**", links, article.hashtags, article.source)
+                if part
             )
             if kind == "photo":
                 await poster.post_image_bytes(data, caption_en=caption)
+            elif kind == "document":
+                await _post_3d(poster, data, filename, caption)
             else:
                 await poster.post_media(kind, data, filename, caption_en=caption)
 
